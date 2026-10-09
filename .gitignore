@@ -1,0 +1,29 @@
+# Maven build target
+target/
+
+# Compiled Java bytecode
+bin/
+*.class
+
+# IDE and Editor Cache
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS temporary files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs and secrets
+*.log
+manifest.txt
+build_jar/
+backup_old_main/
+
+# Native bundle & desktop shortcuts
+TypeRush-App/
+*.lnk

@@ -34,7 +34,6 @@ public class ReportsPanel extends JPanel {
     private JComboBox<String> comboDateRange;
     private StatCard cardBestWpm;
     private StatCard cardAvgWpm;
-    private StatCard cardAvgAcc;
     private StatCard cardTotalTests;
 
     private PerformanceChart trendChart;
@@ -216,7 +215,6 @@ public class ReportsPanel extends JPanel {
         if (currentReportResults.isEmpty()) {
             cardBestWpm.setValue("0.0");
             cardAvgWpm.setValue("0.0");
-            cardAvgAcc.setValue("0.0%");
             cardTotalTests.setValue("0");
             trendChart.setData(new ArrayList<>());
             updateDifficultyBreakdownUI(reportService.getDifficultyBreakdown(currentReportResults));
@@ -229,7 +227,6 @@ public class ReportsPanel extends JPanel {
 
         cardBestWpm.setValue(String.format("%.1f", maxWpm));
         cardAvgWpm.setValue(String.format("%.1f", avgWpm));
-        cardAvgAcc.setValue(String.format("%.1f%%", avgAcc));
         cardTotalTests.setValue(String.valueOf(currentReportResults.size()));
 
         // Populate Trend Chart with chronological WPMs

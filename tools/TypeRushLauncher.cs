@@ -49,8 +49,7 @@ namespace TypeRush
                 psi.FileName = javaExe;
                 psi.Arguments = "-jar \"" + jarPath + "\"";
                 psi.WorkingDirectory = appDir;
-                psi.UseShellExecute = false;
-                psi.CreateNoWindow = true;
+                psi.UseShellExecute = true;
                 Process.Start(psi);
             }
             catch (Exception ex)

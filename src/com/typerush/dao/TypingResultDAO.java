@@ -18,15 +18,47 @@ public class TypingResultDAO {
 
     // In-memory fallback list to ensure the application works seamlessly offline
     private static final List<TypingResult> memoryResults = new ArrayList<>();
-    private static int memoryIdCounter = 10;
+    private static int memoryIdCounter = 100;
 
     static {
-        // Pre-seeded demo results for user 2 (Priyanshu Sharma)
-        memoryResults.add(new TypingResult(1, 2, "TIME-30", "Easy", 30, 0, 52.0, 54.2, 96.0, 260, 11, 0, 0, 520, new Timestamp(System.currentTimeMillis() - 86400000L * 3)));
-        memoryResults.add(new TypingResult(2, 2, "TIME-30", "Medium", 30, 0, 64.5, 66.0, 97.7, 322, 7, 1, 0, 644, new Timestamp(System.currentTimeMillis() - 86400000L * 2)));
-        memoryResults.add(new TypingResult(3, 2, "TIME-60", "Hard", 60, 0, 58.2, 61.0, 95.4, 582, 28, 2, 4, 582, new Timestamp(System.currentTimeMillis() - 86400000L)));
-        memoryResults.add(new TypingResult(4, 2, "WORDS-25", "Medium", 22, 25, 68.2, 70.0, 97.4, 250, 6, 0, 0, 681, new Timestamp(System.currentTimeMillis() - 3600000L * 4)));
-        memoryResults.add(new TypingResult(5, 2, "WORDS-50", "Medium", 44, 50, 71.0, 72.5, 97.9, 520, 11, 1, 0, 709, new Timestamp(System.currentTimeMillis() - 1800000L)));
+        // Pre-seeded demo results for user 2 (Priyanshu Sharma) - exactly matching reference UI
+        long dayMs = 86400000L;
+        long baseTime = System.currentTimeMillis();
+
+        // 1. Oct 9, 2026 - Time (60s) Medium 78 WPM 96% Acc
+        memoryResults.add(new TypingResult(1, 2, "TIME-60", "Medium", 60, 0, 78.0, 84.0, 96.0, 392, 18, 5, 12, 780, new Timestamp(baseTime - dayMs * 1)));
+        // 2. Oct 8, 2026 - Time (30s) Easy 72 WPM 94% Acc
+        memoryResults.add(new TypingResult(2, 2, "TIME-30", "Easy", 30, 0, 72.0, 75.0, 94.0, 360, 22, 2, 8, 720, new Timestamp(baseTime - dayMs * 2)));
+        // 3. Oct 7, 2026 - Words (100) Hard 81 WPM 92% Acc
+        memoryResults.add(new TypingResult(3, 2, "WORDS-100", "Hard", 120, 100, 81.0, 86.0, 92.0, 480, 38, 6, 15, 810, new Timestamp(baseTime - dayMs * 3)));
+        // 4. Oct 6, 2026 - Time (60s) Medium 69 WPM 95% Acc
+        memoryResults.add(new TypingResult(4, 2, "TIME-60", "Medium", 60, 0, 69.0, 73.0, 95.0, 345, 18, 3, 9, 690, new Timestamp(baseTime - dayMs * 4)));
+        // 5. Oct 5, 2026 - Time (30s) Easy 63 WPM 93% Acc
+        memoryResults.add(new TypingResult(5, 2, "TIME-30", "Easy", 30, 0, 63.0, 67.0, 93.0, 315, 23, 2, 10, 630, new Timestamp(baseTime - dayMs * 5)));
+        // 6. Oct 4, 2026 - Time (30s) Medium 71 WPM 93% Acc
+        memoryResults.add(new TypingResult(6, 2, "TIME-30", "Medium", 30, 0, 71.0, 75.0, 93.0, 355, 25, 4, 11, 710, new Timestamp(baseTime - dayMs * 6)));
+        // 7. Oct 3, 2026 - Time (15s) Easy 58 WPM 91% Acc
+        memoryResults.add(new TypingResult(7, 2, "TIME-15", "Easy", 15, 0, 58.0, 62.0, 91.0, 145, 14, 1, 5, 580, new Timestamp(baseTime - dayMs * 7)));
+        // 8. Oct 2, 2026 - Time (60s) Hard 76 WPM 94% Acc
+        memoryResults.add(new TypingResult(8, 2, "TIME-60", "Hard", 60, 0, 76.0, 80.0, 94.0, 380, 24, 3, 10, 760, new Timestamp(baseTime - dayMs * 8)));
+        // 9. Peak speed test: 92 WPM Record (Easy mode)
+        memoryResults.add(new TypingResult(9, 2, "TIME-60", "Easy", 60, 0, 92.0, 95.0, 97.0, 460, 14, 2, 4, 920, new Timestamp(baseTime - dayMs * 9)));
+        // 10-28: remaining realistic tests to reach 28 total tests, ~67 avg WPM, ~95% avg accuracy
+        double[] extraWpms = {65, 74, 59, 83, 68, 77, 61, 70, 54, 66, 73, 56, 68, 72, 60, 64, 75, 57, 63};
+        String[] extraDiffs = {"Medium", "Easy", "Hard", "Easy", "Medium", "Easy", "Hard", "Medium", "Hard", "Medium", "Easy", "Hard", "Medium", "Easy", "Hard", "Medium", "Easy", "Hard", "Medium"};
+        double[] extraAccs = {95, 96, 94, 97, 95, 96, 93, 95, 92, 95, 96, 94, 95, 96, 93, 94, 97, 94, 95};
+
+        for (int i = 0; i < extraWpms.length; i++) {
+            int testId = 10 + i;
+            String diff = extraDiffs[i];
+            double wpm = extraWpms[i];
+            double acc = extraAccs[i];
+            memoryResults.add(new TypingResult(
+                    testId, 2, "TIME-60", diff, 60, 0,
+                    wpm, wpm + 4.0, acc, (int)(wpm * 5), 18, 2, 5, (int)(wpm * 10),
+                    new Timestamp(baseTime - dayMs * (10 + i))
+            ));
+        }
     }
 
     public synchronized boolean insertResult(TypingResult result) {

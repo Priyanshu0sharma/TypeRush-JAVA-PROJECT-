@@ -43,6 +43,9 @@ public class TypingEngineService {
     // Second-by-second WPM snapshots for graph visualization
     private final List<Double> wpmHistory = new ArrayList<>();
     private int lastRecordedSecond = 0;
+    private boolean lastCharCorrect = true;
+    private int currentStreak = 0;
+    private int bestStreak = 0;
 
     private final AuthService authService = AuthService.getInstance();
 
@@ -82,6 +85,8 @@ public class TypingEngineService {
         this.isFinished = false;
         this.wpmHistory.clear();
         this.lastRecordedSecond = 0;
+        this.currentStreak = 0;
+        this.bestStreak = 0;
     }
 
     /**
@@ -106,6 +111,8 @@ public class TypingEngineService {
         if (c == ' ') {
             // Space pressed: if something has been typed, advance to next word
             if (currentTyped.length() > 0) {
+                String targetWord = targetWords.get(currentWordIndex);
+                lastCharCorrect = currentTyped.toString().equals(targetWord);
                 currentWordIndex++;
                 if (currentWordIndex >= targetWords.size() ||
                         (modeType == TestModeType.WORDS && currentWordIndex >= modeValue)) {
@@ -115,12 +122,51 @@ public class TypingEngineService {
         } else {
             // Normal character input
             String targetWord = targetWords.get(currentWordIndex);
+            int charPos = currentTyped.length();
+            if (charPos < targetWord.length()) {
+                lastCharCorrect = (c == targetWord.charAt(charPos));
+            } else {
+                lastCharCorrect = false; // extra character
+            }
+
             if (currentTyped.length() < targetWord.length() + 10) {
                 currentTyped.append(c);
             }
         }
 
+        if (lastCharCorrect) {
+            currentStreak++;
+            if (currentStreak > bestStreak) {
+                bestStreak = currentStreak;
+            }
+        } else {
+            currentStreak = 0;
+        }
+
         recordLiveWpmSnapshot();
+    }
+
+    public boolean isLastCharCorrect() {
+        return lastCharCorrect;
+    }
+
+    public int getCurrentStreak() {
+        return currentStreak;
+    }
+
+    public int getBestStreak() {
+        return bestStreak;
+    }
+
+    public Character getNextExpectedChar() {
+        if (isFinished || currentWordIndex >= targetWords.size()) return null;
+        String targetWord = targetWords.get(currentWordIndex);
+        StringBuilder currentTyped = userTypedWords.get(currentWordIndex);
+        if (currentTyped.length() < targetWord.length()) {
+            return targetWord.charAt(currentTyped.length());
+        } else {
+            return ' ';
+        }
     }
 
     /**
@@ -335,5 +381,18 @@ public class TypingEngineService {
 
     public String getDifficulty() {
         return difficulty;
+    }
+
+    public double getRawWpm() {
+        return CalculationService.calculateRawWpm(getTotalTypedChars(), getElapsedSeconds());
+    }
+
+    public int getTargetTextLength() {
+        if (targetWords == null || targetWords.isEmpty()) return 0;
+        int len = 0;
+        for (String w : targetWords) {
+            len += w.length() + 1;
+        }
+        return Math.max(0, len - 1);
     }
 }

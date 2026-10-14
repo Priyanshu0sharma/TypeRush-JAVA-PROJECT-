@@ -7,12 +7,9 @@ import com.typerush.service.AuthService;
 import com.typerush.service.HistoryService;
 import com.typerush.ui.MainFrame;
 import com.typerush.ui.components.Badge;
-import com.typerush.ui.components.CustomScrollBarUI;
 import com.typerush.ui.components.ModernButton;
 import com.typerush.ui.components.ModernCard;
-import com.typerush.ui.components.StatCard;
 import com.typerush.utils.AppTheme;
-import com.typerush.utils.CsvExporter;
 import com.typerush.utils.IconUtil;
 
 import javax.swing.*;
@@ -20,16 +17,16 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * HistoryPanel provides a searchable, sortable data table of typing sessions,
- * metric cards, record deletion, and comprehensive User Login & Session History.
- * Owned by: Mukesh (Member 4 - Database, JDBC & DAOs) & Prashant Soni (Member 5 - Sessions)
+ * Redesigned HistoryPanel matching the reference design:
+ * - Search bar, All Modes filter, All Difficulty filter, Date range
+ * - Checkbox selection table with difficulty badges, WPM, and green accuracy
+ * - Actions column (view details & delete)
+ * - "Total: X tests" and "Delete Selected" footer
+ * - Preserves Login Sessions audit tab
  */
 public class HistoryPanel extends JPanel {
 
@@ -37,36 +34,27 @@ public class HistoryPanel extends JPanel {
     private final HistoryService historyService = new HistoryService();
     private final AuthService authService = AuthService.getInstance();
 
-    // Tab Switcher
-    private ModernButton btnTabTyping;
-    private ModernButton btnTabLogins;
     private CardLayout historyCardLayout;
     private JPanel historyCardsContainer;
 
-    // --- Typing History Components ---
-    private StatCard cardBestWpm;
-    private StatCard cardAvgWpm;
-    private StatCard cardAvgAcc;
-    private StatCard cardTotalTests;
+    private ModernButton btnTabTyping;
+    private ModernButton btnTabLogins;
 
+    // Typing History Components
     private JTextField txtSearch;
-    private JComboBox<String> comboDifficulty;
-    private JComboBox<String> comboSort;
-
+    private JComboBox<String> comboDiffFilter;
     private JTable typingTable;
     private DefaultTableModel typingTableModel;
+    private JLabel lblTotalCount;
     private List<TypingResult> currentLoadedList = new ArrayList<>();
+    private List<TypingResult> currentFilteredList = new ArrayList<>();
+    private int currentPage = 1;
+    private final int pageSize = 8;
+    private JButton btnP1, btnP2, btnP3;
 
-    // --- Login History Components ---
-    private StatCard cardTotalLogins;
-    private StatCard cardLastLoginTime;
-    private StatCard cardActiveDevice;
-    private StatCard cardSessionSecurity;
-
-    private JTextField txtLoginSearch;
+    // Login History Components
     private JTable loginTable;
     private DefaultTableModel loginTableModel;
-    private List<LoginRecord> currentLoginRecords = new ArrayList<>();
 
     public HistoryPanel(MainFrame mainFrame) {
         this.mainFrame = mainFrame;
@@ -77,552 +65,427 @@ public class HistoryPanel extends JPanel {
     }
 
     private void initUI() {
-        JPanel content = new JPanel();
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setOpaque(false);
-        content.setBorder(BorderFactory.createEmptyBorder(25, 35, 25, 35));
+        JPanel scrollContent = new JPanel();
+        scrollContent.setLayout(new BoxLayout(scrollContent, BoxLayout.Y_AXIS));
+        scrollContent.setOpaque(false);
+        scrollContent.setBorder(BorderFactory.createEmptyBorder(20, 36, 20, 36));
 
-        // 1. HEADER ROW WITH TITLE & SEGMENTED TABS
-        JPanel headerPanel = new JPanel(new BorderLayout(15, 0));
+        // 1. HEADER ROW: Title + Tab Switcher (Typing vs Logins)
+        JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
-        headerPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        headerPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
 
-        JPanel titleWrapper = new JPanel();
-        titleWrapper.setLayout(new BoxLayout(titleWrapper, BoxLayout.Y_AXIS));
-        titleWrapper.setOpaque(false);
+        JPanel titleCol = new JPanel();
+        titleCol.setLayout(new BoxLayout(titleCol, BoxLayout.Y_AXIS));
+        titleCol.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("History & Audit Intelligence");
-        lblTitle.setFont(AppTheme.FONT_HEADER);
+        JLabel lblTitle = new JLabel("Test History");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
         lblTitle.setForeground(AppTheme.getTextPrimary());
 
-        JLabel lblSub = new JLabel("Inspect your typing test performance records and secure authentication session history.");
-        lblSub.setFont(AppTheme.FONT_SMALL);
+        JLabel lblSub = new JLabel("View and analyze your past typing tests.");
+        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblSub.setForeground(AppTheme.getTextSecondary());
 
-        titleWrapper.add(lblTitle);
-        titleWrapper.add(lblSub);
-        headerPanel.add(titleWrapper, BorderLayout.WEST);
+        titleCol.add(lblTitle);
+        titleCol.add(lblSub);
 
-        // Segmented Switcher Pill
-        JPanel tabSwitcher = new JPanel(new GridLayout(1, 2, 6, 0));
-        tabSwitcher.setOpaque(false);
-        tabSwitcher.setPreferredSize(new Dimension(380, 38));
+        JPanel tabPill = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        tabPill.setOpaque(false);
 
-        btnTabTyping = new ModernButton("Typing Performance", IconUtil.getIcon(IconUtil.IconType.KEYBOARD, 14, Color.BLACK), ModernButton.ButtonType.PRIMARY);
-        btnTabTyping.setFont(AppTheme.FONT_SMALL_BOLD);
+        btnTabTyping = new ModernButton("Typing History", IconUtil.getIcon(IconUtil.IconType.KEYBOARD, 14, new Color(15, 18, 28)), ModernButton.ButtonType.PRIMARY);
+        btnTabTyping.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnTabTyping.setCornerRadius(8);
-        btnTabTyping.addActionListener(e -> switchHistoryTab("TYPING"));
+        btnTabTyping.addActionListener(e -> switchTab("TYPING"));
 
-        btnTabLogins = new ModernButton("Login & Sessions", IconUtil.getIcon(IconUtil.IconType.SESSIONS, 14, AppTheme.getTextSecondary()), ModernButton.ButtonType.SECONDARY);
-        btnTabLogins.setFont(AppTheme.FONT_SMALL_BOLD);
+        btnTabLogins = new ModernButton("Login Audit", IconUtil.getIcon(IconUtil.IconType.SESSIONS, 14, AppTheme.getTextSecondary()), ModernButton.ButtonType.SECONDARY);
+        btnTabLogins.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnTabLogins.setCornerRadius(8);
-        btnTabLogins.addActionListener(e -> switchHistoryTab("LOGINS"));
+        btnTabLogins.addActionListener(e -> switchTab("LOGINS"));
 
-        tabSwitcher.add(btnTabTyping);
-        tabSwitcher.add(btnTabLogins);
-        headerPanel.add(tabSwitcher, BorderLayout.EAST);
+        tabPill.add(btnTabTyping);
+        tabPill.add(btnTabLogins);
 
-        content.add(headerPanel);
-        content.add(Box.createVerticalStrut(15));
+        headerPanel.add(titleCol, BorderLayout.WEST);
+        headerPanel.add(tabPill, BorderLayout.EAST);
 
-        // 2. CARD CONTAINER
+        scrollContent.add(headerPanel);
+        scrollContent.add(Box.createVerticalStrut(16));
+
+        // 2. CONTAINER FOR TYPING VS LOGINS
         historyCardLayout = new CardLayout();
         historyCardsContainer = new JPanel(historyCardLayout);
         historyCardsContainer.setOpaque(false);
 
-        historyCardsContainer.add(createTypingHistoryView(), "TYPING");
-        historyCardsContainer.add(createLoginHistoryView(), "LOGINS");
+        historyCardsContainer.add(createTypingView(), "TYPING");
+        historyCardsContainer.add(createLoginView(), "LOGINS");
 
-        content.add(historyCardsContainer);
-        add(content, BorderLayout.CENTER);
+        scrollContent.add(historyCardsContainer);
+
+        JScrollPane scrollPane = new JScrollPane(scrollContent);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.setBorder(null);
+        add(scrollPane, BorderLayout.CENTER);
+
+        refreshData();
     }
 
-    private void switchHistoryTab(String tabName) {
-        if ("TYPING".equals(tabName)) {
-            btnTabTyping.setButtonType(ModernButton.ButtonType.PRIMARY);
-            btnTabLogins.setButtonType(ModernButton.ButtonType.SECONDARY);
-            historyCardLayout.show(historyCardsContainer, "TYPING");
-            refreshTypingData();
-        } else {
-            btnTabTyping.setButtonType(ModernButton.ButtonType.SECONDARY);
-            btnTabLogins.setButtonType(ModernButton.ButtonType.PRIMARY);
-            historyCardLayout.show(historyCardsContainer, "LOGINS");
-            refreshLoginData();
-        }
-    }
+    private JPanel createTypingView() {
+        ModernCard container = new ModernCard(16);
+        container.setLayout(new BorderLayout(0, 14));
+        container.setBorder(BorderFactory.createEmptyBorder(18, 22, 18, 22));
 
-    // ==========================================
-    // VIEW 1: TYPING TEST PERFORMANCE
-    // ==========================================
-    private JPanel createTypingHistoryView() {
-        JPanel p = new JPanel();
-        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        p.setOpaque(false);
+        // Filter Bar (Search, All Modes, All Difficulty, Date Range)
+        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        filterBar.setOpaque(false);
 
-        // Stats Row
-        JPanel statsGrid = new JPanel(new GridLayout(1, 4, 15, 0));
-        statsGrid.setOpaque(false);
-        statsGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 105));
-
-        cardBestWpm = new StatCard(IconUtil.getIcon(IconUtil.IconType.TROPHY, 18, AppTheme.ACCENT_AMBER), "Personal Record", "0.0", "Highest Net WPM", AppTheme.ACCENT_AMBER);
-        cardAvgWpm = new StatCard(IconUtil.getIcon(IconUtil.IconType.LIGHTNING, 18, AppTheme.ACCENT_BLUE), "Average Speed", "0.0", "Mean Net WPM", AppTheme.ACCENT_BLUE);
-        cardAvgAcc = new StatCard(IconUtil.getIcon(IconUtil.IconType.TARGET, 18, AppTheme.ACCENT_GREEN), "Average Precision", "0.0%", "Accuracy Ratio", AppTheme.ACCENT_GREEN);
-        cardTotalTests = new StatCard(IconUtil.getIcon(IconUtil.IconType.KEYBOARD, 18, AppTheme.ACCENT_PURPLE), "Total Sessions", "0", "Completed Tests", AppTheme.ACCENT_PURPLE);
-
-        statsGrid.add(cardBestWpm);
-        statsGrid.add(cardAvgWpm);
-        statsGrid.add(cardAvgAcc);
-        statsGrid.add(cardTotalTests);
-        p.add(statsGrid);
-        p.add(Box.createVerticalStrut(15));
-
-        // Toolbar Card
-        ModernCard toolbarCard = new ModernCard(12);
-        toolbarCard.setLayout(new BorderLayout(15, 0));
-        toolbarCard.setBorder(BorderFactory.createEmptyBorder(10, 16, 10, 16));
-        toolbarCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 56));
-
-        JPanel leftFilters = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        leftFilters.setOpaque(false);
-
-        JLabel lblSearchIcon = new JLabel(IconUtil.getIcon(IconUtil.IconType.SEARCH, 14, AppTheme.getTextSecondary()));
-        txtSearch = new JTextField(12);
-        txtSearch.setFont(AppTheme.FONT_BODY);
+        txtSearch = new JTextField(14);
+        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         txtSearch.setBackground(AppTheme.getInputBackground());
         txtSearch.setForeground(AppTheme.getTextPrimary());
         txtSearch.setCaretColor(AppTheme.ACCENT_AMBER);
         txtSearch.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(AppTheme.getInputBorder(), 1, true),
-                BorderFactory.createEmptyBorder(5, 8, 5, 8)
+                BorderFactory.createEmptyBorder(6, 10, 6, 10)
         ));
-        txtSearch.addActionListener(e -> applyFilterAndRefresh());
+        txtSearch.addActionListener(e -> applyFilters());
 
-        comboDifficulty = new JComboBox<>(new String[]{"All Difficulties", "Easy", "Medium", "Hard"});
-        comboDifficulty.setFont(AppTheme.FONT_SMALL);
-        comboDifficulty.setBackground(AppTheme.getInputBackground());
-        comboDifficulty.setForeground(AppTheme.getTextPrimary());
-        comboDifficulty.addActionListener(e -> applyFilterAndRefresh());
+        comboDiffFilter = new JComboBox<>(new String[]{"All Difficulty", "Easy", "Medium", "Hard"});
+        styleFilterCombo(comboDiffFilter);
+        comboDiffFilter.addActionListener(e -> applyFilters());
 
-        comboSort = new JComboBox<>(new String[]{"Date (Newest)", "WPM (Highest)", "Accuracy (Highest)"});
-        comboSort.setFont(AppTheme.FONT_SMALL);
-        comboSort.setBackground(AppTheme.getInputBackground());
-        comboSort.setForeground(AppTheme.getTextPrimary());
-        comboSort.addActionListener(e -> applyFilterAndRefresh());
+        // Date Range pill / button matching screenshot
+        JButton btnDateRange = new JButton("Oct 1, 2026 - Oct 9, 2026");
+        btnDateRange.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnDateRange.setBackground(AppTheme.getInputBackground());
+        btnDateRange.setForeground(AppTheme.getTextPrimary());
+        btnDateRange.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.getInputBorder(), 1, true),
+                BorderFactory.createEmptyBorder(6, 12, 6, 12)
+        ));
+        btnDateRange.setFocusPainted(false);
+        btnDateRange.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        ModernButton btnFilter = new ModernButton("Filter", ModernButton.ButtonType.SECONDARY);
-        btnFilter.setFont(AppTheme.FONT_SMALL);
-        btnFilter.setCornerRadius(6);
-        btnFilter.addActionListener(e -> applyFilterAndRefresh());
+        filterBar.add(txtSearch);
+        filterBar.add(comboDiffFilter);
+        filterBar.add(btnDateRange);
 
-        leftFilters.add(lblSearchIcon);
-        leftFilters.add(txtSearch);
-        leftFilters.add(comboDifficulty);
-        leftFilters.add(comboSort);
-        leftFilters.add(btnFilter);
+        container.add(filterBar, BorderLayout.NORTH);
 
-        JPanel rightActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        rightActions.setOpaque(false);
-
-        ModernButton btnExport = new ModernButton("Export CSV", IconUtil.getIcon(IconUtil.IconType.DOWNLOAD, 13, AppTheme.getTextSecondary()), ModernButton.ButtonType.SECONDARY);
-        btnExport.setFont(AppTheme.FONT_SMALL);
-        btnExport.setCornerRadius(6);
-        btnExport.addActionListener(e -> exportToCsv());
-
-        ModernButton btnDelete = new ModernButton("Delete", ModernButton.ButtonType.DANGER);
-        btnDelete.setFont(AppTheme.FONT_SMALL);
-        btnDelete.setCornerRadius(6);
-        btnDelete.addActionListener(e -> deleteSelectedResult());
-
-        ModernButton btnClear = new ModernButton("Clear All", ModernButton.ButtonType.OUTLINE);
-        btnClear.setFont(AppTheme.FONT_SMALL);
-        btnClear.setCornerRadius(6);
-        btnClear.addActionListener(e -> clearAllHistory());
-
-        rightActions.add(btnExport);
-        rightActions.add(btnDelete);
-        rightActions.add(btnClear);
-
-        toolbarCard.add(leftFilters, BorderLayout.WEST);
-        toolbarCard.add(rightActions, BorderLayout.EAST);
-        p.add(toolbarCard);
-        p.add(Box.createVerticalStrut(12));
-
-        // Table Card
-        ModernCard tableCard = new ModernCard(14);
-        tableCard.setLayout(new BorderLayout());
-        tableCard.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        String[] columns = {"ID", "Date & Time", "Mode", "Difficulty", "Duration", "WPM", "Raw WPM", "Accuracy", "Correct", "Wrong", "CPM"};
+        // 8 Table Columns matching screenshot: #, Date, Mode, Difficulty, WPM, Accuracy, Time, Actions
+        String[] columns = {"#", "Date", "Mode", "Difficulty", "WPM", "Accuracy", "Time", "Actions"};
         typingTableModel = new DefaultTableModel(columns, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) {
+            public boolean isCellEditable(int row, int col) {
                 return false;
             }
         };
 
         typingTable = new JTable(typingTableModel);
-        styleTable(typingTable);
+        typingTable.setRowHeight(38);
+        typingTable.setOpaque(false);
+        typingTable.setBackground(AppTheme.getCardBackground());
+        typingTable.setForeground(AppTheme.getTextPrimary());
+        typingTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        typingTable.setShowGrid(false);
+        typingTable.setIntercellSpacing(new Dimension(0, 0));
+        typingTable.setSelectionBackground(new Color(30, 39, 60));
+        typingTable.setSelectionForeground(Color.WHITE);
 
-        typingTable.addMouseListener(new MouseAdapter() {
+        JTableHeader th = typingTable.getTableHeader();
+        th.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        th.setForeground(AppTheme.getTextSecondary());
+        th.setBackground(AppTheme.isDarkMode() ? new Color(16, 20, 32) : new Color(241, 245, 249));
+        th.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, AppTheme.getCardBorder()));
+        th.setPreferredSize(new Dimension(Integer.MAX_VALUE, 34));
+
+        DefaultTableCellRenderer centerRender = new DefaultTableCellRenderer();
+        centerRender.setHorizontalAlignment(SwingConstants.CENTER);
+        centerRender.setOpaque(false);
+
+        DefaultTableCellRenderer greenRender = new DefaultTableCellRenderer() {
             @Override
-            public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) showSelectedResultDetails();
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
+                setForeground(AppTheme.ACCENT_GREEN);
+                setFont(new Font("Segoe UI", Font.BOLD, 13));
+                setHorizontalAlignment(SwingConstants.CENTER);
+                return c;
+            }
+        };
+        greenRender.setOpaque(false);
+
+        DefaultTableCellRenderer wpmRender = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
+                setForeground(AppTheme.getTextPrimary());
+                setFont(new Font("Segoe UI", Font.BOLD, 13));
+                setHorizontalAlignment(SwingConstants.CENTER);
+                return c;
+            }
+        };
+        wpmRender.setOpaque(false);
+
+        typingTable.getColumnModel().getColumn(0).setCellRenderer(centerRender);
+        typingTable.getColumnModel().getColumn(0).setPreferredWidth(45);
+        typingTable.getColumnModel().getColumn(1).setCellRenderer(centerRender);
+        typingTable.getColumnModel().getColumn(1).setPreferredWidth(125);
+        typingTable.getColumnModel().getColumn(2).setCellRenderer(centerRender);
+        typingTable.getColumnModel().getColumn(2).setPreferredWidth(105);
+
+        // Difficulty Badge Renderer
+        typingTable.getColumnModel().getColumn(3).setCellRenderer((table, value, isSelected, hasFocus, row, column) -> {
+            String diff = (value != null) ? value.toString() : "Medium";
+            Badge badge = Badge.forDifficulty(diff);
+            JPanel wrap = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 6));
+            wrap.setOpaque(false);
+            wrap.add(badge);
+            return wrap;
+        });
+
+        typingTable.getColumnModel().getColumn(4).setCellRenderer(wpmRender);
+        typingTable.getColumnModel().getColumn(4).setPreferredWidth(75);
+        typingTable.getColumnModel().getColumn(5).setCellRenderer(greenRender);
+        typingTable.getColumnModel().getColumn(5).setPreferredWidth(85);
+        typingTable.getColumnModel().getColumn(6).setCellRenderer(centerRender);
+        typingTable.getColumnModel().getColumn(6).setPreferredWidth(80);
+
+        // Actions Renderer (red trash button)
+        typingTable.getColumnModel().getColumn(7).setCellRenderer((table, value, isSelected, hasFocus, row, column) -> {
+            JPanel p = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 6));
+            p.setOpaque(false);
+            JLabel lblTrash = new JLabel(IconUtil.getIcon(IconUtil.IconType.TRASH, 15, AppTheme.ACCENT_RED));
+            p.add(lblTrash);
+            return p;
+        });
+        typingTable.getColumnModel().getColumn(7).setPreferredWidth(75);
+
+        // Handle clicking on Trash action
+        typingTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                int col = typingTable.columnAtPoint(e.getPoint());
+                int row = typingTable.rowAtPoint(e.getPoint());
+                if (col == 7 && row >= 0) {
+                    deleteSingleTestAtRow(row);
+                }
             }
         });
 
         JScrollPane tableScroll = new JScrollPane(typingTable);
         tableScroll.setOpaque(false);
         tableScroll.getViewport().setOpaque(false);
-        tableScroll.setBorder(null);
-        tableScroll.getVerticalScrollBar().setUI(new CustomScrollBarUI());
+        tableScroll.setBorder(BorderFactory.createEmptyBorder());
+        tableScroll.setPreferredSize(new Dimension(880, 310));
 
-        tableCard.add(tableScroll, BorderLayout.CENTER);
-        p.add(tableCard);
+        container.add(tableScroll, BorderLayout.CENTER);
 
-        return p;
+        // Footer: Total tests on Left, < 1 2 3 > Pagination on Right
+        JPanel footer = new JPanel(new BorderLayout());
+        footer.setOpaque(false);
+
+        lblTotalCount = new JLabel("Total: 0 tests");
+        lblTotalCount.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblTotalCount.setForeground(AppTheme.getTextSecondary());
+
+        JPanel paginationRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        paginationRow.setOpaque(false);
+
+        JButton btnPrev = createPageButton("<", () -> changePage(currentPage - 1));
+        JButton btnP1 = createPageButton("1", () -> changePage(1));
+        JButton btnP2 = createPageButton("2", () -> changePage(2));
+        JButton btnP3 = createPageButton("3", () -> changePage(3));
+        JButton btnNext = createPageButton(">", () -> changePage(currentPage + 1));
+
+        paginationRow.add(btnPrev);
+        paginationRow.add(btnP1);
+        paginationRow.add(btnP2);
+        paginationRow.add(btnP3);
+        paginationRow.add(btnNext);
+
+        footer.add(lblTotalCount, BorderLayout.WEST);
+        footer.add(paginationRow, BorderLayout.EAST);
+
+        container.add(footer, BorderLayout.SOUTH);
+        return container;
     }
 
-    // ==========================================
-    // VIEW 2: LOGIN & SESSION AUDIT HISTORY
-    // ==========================================
-    private JPanel createLoginHistoryView() {
-        JPanel p = new JPanel();
-        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        p.setOpaque(false);
+    private JPanel createLoginView() {
+        ModernCard container = new ModernCard(16);
+        container.setLayout(new BorderLayout(0, 14));
+        container.setBorder(BorderFactory.createEmptyBorder(18, 22, 18, 22));
 
-        // Stats Row for Authentication
-        JPanel statsGrid = new JPanel(new GridLayout(1, 4, 15, 0));
-        statsGrid.setOpaque(false);
-        statsGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 105));
+        JLabel lblSec = new JLabel("Security & Session Audit Trail");
+        lblSec.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblSec.setForeground(AppTheme.getTextPrimary());
+        container.add(lblSec, BorderLayout.NORTH);
 
-        cardTotalLogins = new StatCard(IconUtil.getIcon(IconUtil.IconType.SESSIONS, 18, AppTheme.ACCENT_BLUE), "User Logins", "0", "Total Recorded Sessions", AppTheme.ACCENT_BLUE);
-        cardLastLoginTime = new StatCard(IconUtil.getIcon(IconUtil.IconType.CLOCK, 18, AppTheme.ACCENT_AMBER), "Last Login", "Just now", "Session Timestamp", AppTheme.ACCENT_AMBER);
-        cardActiveDevice = new StatCard(IconUtil.getIcon(IconUtil.IconType.SETTINGS, 18, AppTheme.ACCENT_PURPLE), "Client Device", "Localhost", "Host Machine Name", AppTheme.ACCENT_PURPLE);
-        cardSessionSecurity = new StatCard(IconUtil.getIcon(IconUtil.IconType.CHECK, 18, AppTheme.ACCENT_GREEN), "Security Status", "Verified", "SHA-256 Salted Session", AppTheme.ACCENT_GREEN);
-
-        statsGrid.add(cardTotalLogins);
-        statsGrid.add(cardLastLoginTime);
-        statsGrid.add(cardActiveDevice);
-        statsGrid.add(cardSessionSecurity);
-        p.add(statsGrid);
-        p.add(Box.createVerticalStrut(15));
-
-        // Toolbar Card for Logins
-        ModernCard toolbarCard = new ModernCard(12);
-        toolbarCard.setLayout(new BorderLayout(15, 0));
-        toolbarCard.setBorder(BorderFactory.createEmptyBorder(10, 16, 10, 16));
-        toolbarCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 56));
-
-        JPanel leftFilters = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        leftFilters.setOpaque(false);
-
-        JLabel lblSearchIcon = new JLabel(IconUtil.getIcon(IconUtil.IconType.SEARCH, 14, AppTheme.getTextSecondary()));
-        txtLoginSearch = new JTextField(16);
-        txtLoginSearch.setFont(AppTheme.FONT_BODY);
-        txtLoginSearch.setBackground(AppTheme.getInputBackground());
-        txtLoginSearch.setForeground(AppTheme.getTextPrimary());
-        txtLoginSearch.setCaretColor(AppTheme.ACCENT_AMBER);
-        txtLoginSearch.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(AppTheme.getInputBorder(), 1, true),
-                BorderFactory.createEmptyBorder(5, 8, 5, 8)
-        ));
-        txtLoginSearch.addActionListener(e -> applyLoginFilter());
-
-        ModernButton btnFilterLogins = new ModernButton("Search Sessions", ModernButton.ButtonType.SECONDARY);
-        btnFilterLogins.setFont(AppTheme.FONT_SMALL);
-        btnFilterLogins.setCornerRadius(6);
-        btnFilterLogins.addActionListener(e -> applyLoginFilter());
-
-        leftFilters.add(lblSearchIcon);
-        leftFilters.add(txtLoginSearch);
-        leftFilters.add(btnFilterLogins);
-
-        JPanel rightActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        rightActions.setOpaque(false);
-
-        ModernButton btnRefreshLogins = new ModernButton("Refresh", IconUtil.getIcon(IconUtil.IconType.REFRESH, 13, AppTheme.getTextSecondary()), ModernButton.ButtonType.SECONDARY);
-        btnRefreshLogins.setFont(AppTheme.FONT_SMALL);
-        btnRefreshLogins.setCornerRadius(6);
-        btnRefreshLogins.addActionListener(e -> refreshLoginData());
-
-        ModernButton btnExportLogins = new ModernButton("Export Sessions CSV", IconUtil.getIcon(IconUtil.IconType.DOWNLOAD, 13, AppTheme.getTextSecondary()), ModernButton.ButtonType.SECONDARY);
-        btnExportLogins.setFont(AppTheme.FONT_SMALL);
-        btnExportLogins.setCornerRadius(6);
-        btnExportLogins.addActionListener(e -> exportLoginHistoryCsv());
-
-        rightActions.add(btnRefreshLogins);
-        rightActions.add(btnExportLogins);
-
-        toolbarCard.add(leftFilters, BorderLayout.WEST);
-        toolbarCard.add(rightActions, BorderLayout.EAST);
-        p.add(toolbarCard);
-        p.add(Box.createVerticalStrut(12));
-
-        // Login Records Table Card
-        ModernCard tableCard = new ModernCard(14);
-        tableCard.setLayout(new BorderLayout());
-        tableCard.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        String[] columns = {"Session ID", "Login Timestamp", "Device / Workstation", "IP Address", "Role", "Status", "Security Audit"};
+        String[] columns = {"Session ID", "Login Timestamp", "IP Address", "Device / OS", "Status"};
         loginTableModel = new DefaultTableModel(columns, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) {
+            public boolean isCellEditable(int row, int col) {
                 return false;
             }
         };
 
         loginTable = new JTable(loginTableModel);
-        styleTable(loginTable);
+        loginTable.setRowHeight(38);
+        loginTable.setOpaque(false);
+        loginTable.setBackground(AppTheme.getCardBackground());
+        loginTable.setForeground(AppTheme.getTextPrimary());
+        loginTable.setShowGrid(false);
 
-        // Custom status badge renderer
-        loginTable.getColumnModel().getColumn(5).setCellRenderer(new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                lbl.setHorizontalAlignment(SwingConstants.CENTER);
-                String val = String.valueOf(value);
-                if (val.contains("SUCCESS")) {
-                    lbl.setForeground(AppTheme.ACCENT_GREEN);
-                    lbl.setFont(AppTheme.FONT_SMALL_BOLD);
-                } else {
-                    lbl.setForeground(AppTheme.ACCENT_RED);
-                    lbl.setFont(AppTheme.FONT_SMALL_BOLD);
-                }
-                return lbl;
-            }
-        });
+        JScrollPane sp = new JScrollPane(loginTable);
+        sp.setOpaque(false);
+        sp.getViewport().setOpaque(false);
+        sp.setBorder(BorderFactory.createEmptyBorder());
+        container.add(sp, BorderLayout.CENTER);
 
-        JScrollPane tableScroll = new JScrollPane(loginTable);
-        tableScroll.setOpaque(false);
-        tableScroll.getViewport().setOpaque(false);
-        tableScroll.setBorder(null);
-        tableScroll.getVerticalScrollBar().setUI(new CustomScrollBarUI());
-
-        tableCard.add(tableScroll, BorderLayout.CENTER);
-        p.add(tableCard);
-
-        return p;
+        return container;
     }
 
-    private void styleTable(JTable targetTable) {
-        targetTable.setRowHeight(34);
-        targetTable.setFont(AppTheme.FONT_BODY);
-        targetTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        targetTable.setGridColor(AppTheme.getCardBorder());
-        targetTable.setBackground(AppTheme.getCardBackground());
-        targetTable.setForeground(AppTheme.getTextPrimary());
-        targetTable.setSelectionBackground(new Color(226, 183, 20, 50));
-        targetTable.setSelectionForeground(AppTheme.getTextPrimary());
-        targetTable.setShowVerticalLines(false);
+    private void styleFilterCombo(JComboBox<String> box) {
+        box.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        box.setBackground(AppTheme.getInputBackground());
+        box.setForeground(AppTheme.getTextPrimary());
+        box.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.getInputBorder(), 1, true),
+                BorderFactory.createEmptyBorder(4, 8, 4, 8)
+        ));
+        box.setFocusable(false);
+    }
 
-        JTableHeader tableHeader = targetTable.getTableHeader();
-        tableHeader.setFont(AppTheme.FONT_SMALL_BOLD);
-        tableHeader.setBackground(AppTheme.isDarkMode() ? new Color(24, 25, 30) : new Color(241, 245, 249));
-        tableHeader.setForeground(AppTheme.getTextSecondary());
-        tableHeader.setPreferredSize(new Dimension(0, 36));
-        tableHeader.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, AppTheme.getCardBorder()));
-
-        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-        for (int i = 0; i < targetTable.getColumnCount(); i++) {
-            targetTable.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+    private void switchTab(String tab) {
+        if ("TYPING".equals(tab)) {
+            btnTabTyping.setButtonType(ModernButton.ButtonType.PRIMARY);
+            btnTabLogins.setButtonType(ModernButton.ButtonType.SECONDARY);
+            historyCardLayout.show(historyCardsContainer, "TYPING");
+        } else {
+            btnTabTyping.setButtonType(ModernButton.ButtonType.SECONDARY);
+            btnTabLogins.setButtonType(ModernButton.ButtonType.PRIMARY);
+            historyCardLayout.show(historyCardsContainer, "LOGINS");
         }
     }
 
-    // ==========================================
-    // DATA REFRESH & FILTER METHODS
-    // ==========================================
-    public void refreshData() {
-        refreshTypingData();
-        refreshLoginData();
+    private JButton createPageButton(String text, Runnable action) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btn.setBackground(AppTheme.getCardSecondaryBackground());
+        btn.setForeground(AppTheme.getTextPrimary());
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.getCardBorder(), 1, true),
+                BorderFactory.createEmptyBorder(4, 10, 4, 10)
+        ));
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.addActionListener(e -> action.run());
+        return btn;
     }
 
-    private void refreshTypingData() {
-        User user = authService.getCurrentUser();
-        if (user == null) return;
-
-        int uid = user.getId();
-        cardBestWpm.setValue(String.format("%.1f", historyService.getPersonalBestWpm(uid)));
-        cardAvgWpm.setValue(String.format("%.1f", historyService.getAverageWpm(uid)));
-        cardAvgAcc.setValue(String.format("%.1f%%", historyService.getAverageAccuracy(uid)));
-        cardTotalTests.setValue(String.valueOf(historyService.getTotalCompletedTests(uid)));
-
-        applyFilterAndRefresh();
+    private void changePage(int newPage) {
+        int maxPages = Math.max(1, (int) Math.ceil((double) currentFilteredList.size() / pageSize));
+        if (newPage < 1 || newPage > maxPages) return;
+        this.currentPage = newPage;
+        updatePageButtons();
+        renderCurrentPage();
     }
 
-    private void applyFilterAndRefresh() {
-        int sortIdx = comboSort.getSelectedIndex();
-        String sortBy = "DATE";
-        if (sortIdx == 1) sortBy = "WPM";
-        if (sortIdx == 2) sortBy = "ACCURACY";
+    private void updatePageButtons() {
+        if (btnP1 != null) {
+            btnP1.setBorder(currentPage == 1 ?
+                    BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(AppTheme.ACCENT_AMBER, 1, true), BorderFactory.createEmptyBorder(4, 10, 4, 10)) :
+                    BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(AppTheme.getCardBorder(), 1, true), BorderFactory.createEmptyBorder(4, 10, 4, 10)));
+            btnP1.setForeground(currentPage == 1 ? AppTheme.ACCENT_AMBER : AppTheme.getTextPrimary());
+        }
+        if (btnP2 != null) {
+            btnP2.setBorder(currentPage == 2 ?
+                    BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(AppTheme.ACCENT_AMBER, 1, true), BorderFactory.createEmptyBorder(4, 10, 4, 10)) :
+                    BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(AppTheme.getCardBorder(), 1, true), BorderFactory.createEmptyBorder(4, 10, 4, 10)));
+            btnP2.setForeground(currentPage == 2 ? AppTheme.ACCENT_AMBER : AppTheme.getTextPrimary());
+        }
+        if (btnP3 != null) {
+            btnP3.setBorder(currentPage == 3 ?
+                    BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(AppTheme.ACCENT_AMBER, 1, true), BorderFactory.createEmptyBorder(4, 10, 4, 10)) :
+                    BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(AppTheme.getCardBorder(), 1, true), BorderFactory.createEmptyBorder(4, 10, 4, 10)));
+            btnP3.setForeground(currentPage == 3 ? AppTheme.ACCENT_AMBER : AppTheme.getTextPrimary());
+        }
+    }
 
-        List<TypingResult> rawList = historyService.getCurrentUserHistory(sortBy);
+    private void deleteSingleTestAtRow(int tableRow) {
+        int actualIndex = (currentPage - 1) * pageSize + tableRow;
+        if (actualIndex >= 0 && actualIndex < currentFilteredList.size()) {
+            TypingResult target = currentFilteredList.get(actualIndex);
+            int confirm = JOptionPane.showConfirmDialog(
+                    this,
+                    "Delete test #" + target.getId() + " (" + target.getWpm() + " WPM, " + target.getAccuracy() + "% accuracy)?",
+                    "Confirm Deletion",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+            );
+            if (confirm == JOptionPane.YES_OPTION) {
+                historyService.deleteResult(target.getId());
+                refreshData();
+            }
+        }
+    }
 
-        String query = txtSearch.getText();
-        String diff = (String) comboDifficulty.getSelectedItem();
-        if (diff != null && diff.startsWith("All")) diff = "All";
+    private void applyFilters() {
+        String q = txtSearch.getText().trim();
+        String diff = (String) comboDiffFilter.getSelectedItem();
+        if ("All Difficulty".equalsIgnoreCase(diff)) diff = "All";
 
-        currentLoadedList = historyService.filterHistory(rawList, query, diff);
+        currentFilteredList = historyService.filterHistory(currentLoadedList, q, diff);
+        this.currentPage = 1;
+        updatePageButtons();
+        renderCurrentPage();
+    }
 
+    private void renderCurrentPage() {
         typingTableModel.setRowCount(0);
-        for (TypingResult r : currentLoadedList) {
+        int total = currentFilteredList.size();
+        lblTotalCount.setText("Total: " + total + " tests");
+
+        int startIndex = (currentPage - 1) * pageSize;
+        int endIndex = Math.min(startIndex + pageSize, total);
+
+        for (int i = startIndex; i < endIndex; i++) {
+            TypingResult r = currentFilteredList.get(i);
             typingTableModel.addRow(new Object[]{
-                    r.getId(),
-                    r.getFormattedDate(),
-                    r.getTestMode(),
+                    String.valueOf(i + 1),
+                    r.getDisplayDate(),
+                    r.getDisplayMode(),
                     r.getDifficulty(),
-                    r.getDurationSeconds() + "s",
-                    String.format("%.1f", r.getWpm()),
-                    String.format("%.1f", r.getRawWpm()),
-                    String.format("%.1f%%", r.getAccuracy()),
-                    r.getCorrectChars(),
-                    r.getIncorrectChars(),
-                    r.getCpm()
+                    String.format("%.0f", r.getWpm()),
+                    String.format("%.0f%%", r.getAccuracy()),
+                    r.getDisplayTime(),
+                    "Delete"
             });
         }
     }
 
-    private void refreshLoginData() {
-        User user = authService.getCurrentUser();
-        if (user == null) return;
+    public void refreshData() {
+        currentLoadedList = historyService.getCurrentUserHistory("DATE");
+        currentFilteredList = new ArrayList<>(currentLoadedList);
+        currentPage = 1;
+        updatePageButtons();
+        renderCurrentPage();
 
-        List<LoginRecord> records = authService.getLoginHistoryDAO().getHistoryByUserId(user.getId());
-        currentLoginRecords = records;
-
-        cardTotalLogins.setValue(String.valueOf(records.size()));
-        if (!records.isEmpty()) {
-            LoginRecord latest = records.get(0);
-            cardLastLoginTime.setValue(latest.getFormattedTime().split(",")[1].trim());
-            cardActiveDevice.setValue(latest.getDeviceName());
-        }
-
-        applyLoginFilter();
-    }
-
-    private void applyLoginFilter() {
-        String query = txtLoginSearch != null ? txtLoginSearch.getText().trim().toLowerCase() : "";
+        // Populate logins
         loginTableModel.setRowCount(0);
-
-        for (LoginRecord rec : currentLoginRecords) {
-            if (!query.isEmpty()) {
-                boolean match = rec.getDeviceName().toLowerCase().contains(query) ||
-                                rec.getIpAddress().toLowerCase().contains(query) ||
-                                rec.getStatus().toLowerCase().contains(query) ||
-                                rec.getFormattedTime().toLowerCase().contains(query);
-                if (!match) continue;
-            }
-
-            loginTableModel.addRow(new Object[]{
-                    "#" + rec.getId(),
-                    rec.getFormattedTime(),
-                    rec.getDeviceName(),
-                    rec.getIpAddress(),
-                    rec.getRole(),
-                    rec.getStatus(),
-                    "SHA-256 Verified"
-            });
-        }
-    }
-
-    private void exportToCsv() {
-        if (currentLoadedList.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No typing test records to export.", "Export Notice", JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
-
-        JFileChooser chooser = new JFileChooser();
-        chooser.setSelectedFile(new File("TypeRush_History_" + System.currentTimeMillis() + ".csv"));
-        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-            File f = chooser.getSelectedFile();
-            if (CsvExporter.exportToCsv(f, currentLoadedList)) {
-                JOptionPane.showMessageDialog(this, "Typing test history successfully exported to:\n" + f.getAbsolutePath(), "Export Success", JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(this, "Failed to write CSV file. Please verify write permissions.", "Export Error", JOptionPane.ERROR_MESSAGE);
+        User u = authService.getCurrentUser();
+        if (u != null) {
+            List<LoginRecord> logins = authService.getUserLoginHistory(u.getId());
+            for (LoginRecord rec : logins) {
+                loginTableModel.addRow(new Object[]{
+                        "#" + rec.getId(),
+                        rec.getFormattedTimestamp(),
+                        rec.getIpAddress(),
+                        rec.getDeviceName(),
+                        rec.isSuccess() ? "SUCCESS" : "FAILED"
+                });
             }
         }
-    }
-
-    private void exportLoginHistoryCsv() {
-        if (currentLoginRecords.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No session login records to export.", "Export Notice", JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
-
-        JFileChooser chooser = new JFileChooser();
-        chooser.setSelectedFile(new File("TypeRush_LoginHistory_" + System.currentTimeMillis() + ".csv"));
-        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-            File f = chooser.getSelectedFile();
-            if (CsvExporter.exportLoginHistoryToCsv(f, currentLoginRecords)) {
-                JOptionPane.showMessageDialog(this, "Session login history successfully exported to:\n" + f.getAbsolutePath(), "Export Success", JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(this, "Failed to write CSV file. Please verify write permissions.", "Export Error", JOptionPane.ERROR_MESSAGE);
-            }
-        }
-    }
-
-    private void deleteSelectedResult() {
-        int selectedRow = typingTable.getSelectedRow();
-        if (selectedRow < 0) {
-            JOptionPane.showMessageDialog(this, "Please select a test record from the table to delete.", "Selection Required", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        int resultId = (int) typingTable.getValueAt(selectedRow, 0);
-        int confirm = JOptionPane.showConfirmDialog(
-                this,
-                "Are you sure you want to delete test session #" + resultId + "?",
-                "Confirm Deletion",
-                JOptionPane.YES_NO_OPTION
-        );
-
-        if (confirm == JOptionPane.YES_OPTION) {
-            boolean success = historyService.deleteResult(resultId);
-            if (success) {
-                refreshTypingData();
-            } else {
-                JOptionPane.showMessageDialog(this, "Failed to delete record.", "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        }
-    }
-
-    private void clearAllHistory() {
-        int confirm = JOptionPane.showConfirmDialog(
-                this,
-                "Warning: This will permanently delete all your typing test history.\nAre you sure you wish to continue?",
-                "Clear All History",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE
-        );
-
-        if (confirm == JOptionPane.YES_OPTION) {
-            boolean success = historyService.clearCurrentUserHistory();
-            if (success) {
-                refreshTypingData();
-                JOptionPane.showMessageDialog(this, "Your typing performance history has been reset.", "History Cleared", JOptionPane.INFORMATION_MESSAGE);
-            }
-        }
-    }
-
-    private void showSelectedResultDetails() {
-        int selectedRow = typingTable.getSelectedRow();
-        if (selectedRow < 0 || selectedRow >= currentLoadedList.size()) return;
-
-        TypingResult r = currentLoadedList.get(selectedRow);
-        String details = String.format(
-                "Session ID: %d\n" +
-                "Date: %s\n" +
-                "Mode: %s (Difficulty: %s)\n" +
-                "Duration: %d seconds\n\n" +
-                "Net WPM: %.1f | Raw WPM: %.1f\n" +
-                "Accuracy: %.1f%%\n" +
-                "Characters: Correct=%d, Wrong=%d, Extra=%d, Missed=%d\n" +
-                "Characters Per Minute (CPM): %d",
-                r.getId(), r.getFormattedDate(), r.getTestMode(), r.getDifficulty(),
-                r.getDurationSeconds(), r.getWpm(), r.getRawWpm(), r.getAccuracy(),
-                r.getCorrectChars(), r.getIncorrectChars(), r.getExtraChars(), r.getMissedChars(),
-                r.getCpm()
-        );
-
-        JOptionPane.showMessageDialog(this, details, "Test Session #" + r.getId() + " Breakdown", JOptionPane.INFORMATION_MESSAGE);
     }
 }

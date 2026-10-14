@@ -79,4 +79,20 @@ public class HistoryService {
     public int getTotalCompletedTests(int userId) {
         return resultDAO.getResultsByUserId(userId, "DATE").size();
     }
+
+    public double getPreviousTestWpm(int userId, int currentResultId) {
+        List<TypingResult> list = resultDAO.getResultsByUserId(userId, "DATE");
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).getId() == currentResultId) {
+                if (i + 1 < list.size()) {
+                    return list.get(i + 1).getWpm();
+                }
+                break;
+            }
+        }
+        if (list.size() > 1) {
+            return list.get(1).getWpm();
+        }
+        return 0.0;
+    }
 }

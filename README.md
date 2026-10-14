@@ -1,26 +1,47 @@
 # ⚡ TypeRush – Typing Speed Tester
 > **Advanced Java Desktop Application (PBL Project)**  
-> Inspired by the minimal, distraction-free typing experience of [Monkeytype](https://monkeytype.com/).
+> **Team: ZeroX** | **GitHub:** [TypeRush-JAVA-PROJECT-](https://github.com/Priyanshu0sharma/TypeRush-JAVA-PROJECT-)  
+> Inspired by the minimal, distraction-free typing experience of [Monkeytype](https://monkeytype.com/) with a sleek modern dark HUD aesthetic.
 
 [![Java 17](https://img.shields.io/badge/Java-17%2B-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://www.oracle.com/java/)
 [![Swing GUI](https://img.shields.io/badge/GUI-Java%20Swing-5382A1?style=for-the-badge&logo=java&logoColor=white)](https://docs.oracle.com/javase/tutorial/uiswing/)
 [![MySQL 8](https://img.shields.io/badge/Database-MySQL%208.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![JDBC](https://img.shields.io/badge/Persistence-JDBC-F58220?style=for-the-badge&logo=java&logoColor=white)](https://docs.oracle.com/javase/8/docs/technotes/guides/jdbc/)
-[![Maven](https://img.shields.io/badge/Build-Maven-C71A36?style=for-the-badge&logo=apache-maven&logoColor=white)](https://maven.apache.org/)
+[![Build Package](https://img.shields.io/badge/Release-Portable%20Zip%20%7C%20EXE%20Launcher-success?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Priyanshu0sharma/TypeRush-JAVA-PROJECT-)
 
 ---
 
-## 👥 5-Member Team Module Ownership
+## 👥 Team ZeroX – 5-Member Module Ownership
 
 This project is engineered as a collaborative 5-member B.Tech College PBL project with strictly defined module boundaries and genuine student code ownership:
 
 | Member No. | Member Name | Role & Responsibility | Modules & Classes Owned |
 |---|---|---|---|
-| **Member 1 (Lead)** | **Priyanshu Sharma** | UI/UX & System Integration | `Main.java`, `MainFrame.java`, `HomePanel.java`, `AppTheme.java`, `ModernButton.java`, `ModernCard.java`, `StatCard.java`, `Badge.java`, `AppConfig.java` |
-| **Member 2** | **Kumawat Yogesh Dinesh** | Typing Engine & Simulation | `TypingEngineService.java`, `MonkeytypeCanvas.java`, `TypingTestPanel.java`, `TextGenerator.java`, `SoundManager.java` |
+| **Member 1 (Lead)** | **Priyanshu Sharma** | UI/UX & System Integration | `Main.java`, `MainFrame.java`, `HomePanel.java`, `AppTheme.java`, `ModernButton.java`, `ModernCard.java`, `StatCard.java`, `Badge.java`, `AppConfig.java`, `ProfilePanel.java` |
+| **Member 2** | **Kumawat Yogesh Dinesh** | Typing Engine & Simulation | `TypingEngineService.java`, `MonkeytypeCanvas.java`, `TypingTestPanel.java`, `TextGenerator.java`, `SoundManager.java`, `VirtualKeyboard.java` |
 | **Member 3** | **Jatin Yadav** | Mathematical Calculations & Telemetry | `CalculationService.java`, `PerformanceChart.java`, `ResultPanel.java`, `ReportsPanel.java`, `ReportService.java`, `CalculationTests.java` |
 | **Member 4** | **Mukesh** | Database Architecture & History CRUD | `database/schema.sql`, `DatabaseConnection.java`, `TypingResultDAO.java`, `HistoryService.java`, `HistoryPanel.java`, `CsvExporter.java` |
 | **Member 5** | **Prashant Soni** | Security, Roles & Administration | `User.java`, `UserSettings.java`, `UserDAO.java`, `UserSettingsDAO.java`, `AuthService.java`, `ValidationUtil.java`, `AuthPanel.java`, `SettingsPanel.java`, `AdminPanel.java` |
+
+---
+
+## 📦 Download & Native Desktop App Installation
+
+TypeRush is packaged to run exactly like a native Windows application:
+
+### 1. Direct Launch via Native Executable
+- **`TypeRush.exe`** – Official native Windows executable with embedded high-resolution TypeRush logo icon. Launches completely silently without terminal popups.
+- **Desktop Shortcut:** Instant 1-click shortcut with app logo installed at `C:\Users\Priyanshuu\Desktop\TypeRush.lnk`.
+
+### 2. Ready-to-Run Portable Release Package
+- Located at: **`dist/TypeRush-v1.0-Windows.zip`**
+- Unzip anywhere and double-click **`TypeRush.exe`** or **`TypeRush.vbs`**.
+- Run **`Install-Desktop-Shortcut.bat`** on any Windows machine to install a Desktop shortcut with the application icon.
+
+### 3. Alternative Launch Methods
+- Double click **`TypeRush.vbs`** (Silent VBScript launcher)
+- Or double click **`run.bat`** (Console launcher with runtime diagnostics)
+- Or launch the standalone fat JAR: `java -jar TypeRush.jar`
 
 ---
 

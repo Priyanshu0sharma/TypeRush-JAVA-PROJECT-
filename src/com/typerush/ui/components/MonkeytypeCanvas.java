@@ -31,6 +31,11 @@ public class MonkeytypeCanvas extends JComponent implements FocusListener, KeyLi
     private int caretHeight = 28;
 
     private int scrollLineOffset = 0;
+    private VirtualKeyboard virtualKeyboard;
+
+    public void setVirtualKeyboard(VirtualKeyboard k) {
+        this.virtualKeyboard = k;
+    }
 
     public MonkeytypeCanvas(TypingEngineService engine, Runnable onKeystrokeCallback, Runnable onRestartCallback) {
         this.engine = engine;
@@ -242,6 +247,10 @@ public class MonkeytypeCanvas extends JComponent implements FocusListener, KeyLi
         }
 
         engine.processCharacter(c);
+
+        if (virtualKeyboard != null) {
+            virtualKeyboard.flashKey(c, engine.isLastCharCorrect());
+        }
 
         if (engine.isRunning()) {
             SoundManager.playClick();

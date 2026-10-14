@@ -1,8 +1,6 @@
 package com.typerush.ui.panels;
 
 import com.typerush.model.TypingResult;
-import com.typerush.model.User;
-import com.typerush.service.AuthService;
 import com.typerush.service.HistoryService;
 import com.typerush.ui.MainFrame;
 import com.typerush.ui.components.ModernButton;
@@ -16,33 +14,31 @@ import javax.swing.*;
 import java.awt.*;
 
 /**
- * ResultPanel displays comprehensive post-test metrics, character breakdowns,
- * personal-best celebration banner, and the 2D performance progression chart.
- * Owned by: Jatin Yadav (Member 3 - Typing Calculations, Results & Reports)
+ * ResultPanel displays comprehensive post-test metrics matching the reference design:
+ * - Trophy icon + "Test Complete!" header
+ * - 3 Highlight KPI Cards (WPM with comparison, Raw WPM, Accuracy)
+ * - 2x4 Detailed Keystroke & Mode Breakdown Grid
+ * - WPM Over Time curved chart with gradient fill
+ * - Action buttons: Try Again (Amber CTA), View History, Back to Home
  */
 public class ResultPanel extends JPanel {
 
     private final MainFrame mainFrame;
     private final HistoryService historyService = new HistoryService();
-    private final AuthService authService = AuthService.getInstance();
-
-    private TypingResult currentResult;
-
-    private JLabel lblTitle;
-    private JLabel lblSubtitle;
-    private JLabel lblPbBanner;
 
     private StatCard cardWpm;
-    private StatCard cardAccuracy;
     private StatCard cardRawWpm;
-    private StatCard cardCpm;
+    private StatCard cardAccuracy;
 
+    // Detailed metrics labels
     private JLabel lblCorrectVal;
     private JLabel lblIncorrectVal;
     private JLabel lblExtraVal;
     private JLabel lblMissedVal;
-    private JLabel lblDurationVal;
-    private JLabel lblModeVal;
+    private JLabel lblCpmVal;
+    private JLabel lblTimeTakenVal;
+    private JLabel lblTestModeVal;
+    private JLabel lblDifficultyVal;
 
     private PerformanceChart chart;
 
@@ -58,7 +54,7 @@ public class ResultPanel extends JPanel {
         JPanel scrollContent = new JPanel();
         scrollContent.setLayout(new BoxLayout(scrollContent, BoxLayout.Y_AXIS));
         scrollContent.setOpaque(false);
-        scrollContent.setBorder(BorderFactory.createEmptyBorder(25, 35, 25, 35));
+        scrollContent.setBorder(BorderFactory.createEmptyBorder(20, 36, 24, 36));
 
         // 1. CELEBRATION HEADER
         JPanel headerPanel = new JPanel();
@@ -66,102 +62,110 @@ public class ResultPanel extends JPanel {
         headerPanel.setOpaque(false);
         headerPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        lblTitle = new JLabel("TEST COMPLETED", SwingConstants.CENTER);
-        lblTitle.setFont(AppTheme.FONT_HEADER_LARGE);
+        JPanel trophyRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
+        trophyRow.setOpaque(false);
+
+        JLabel lblTrophy = new JLabel(IconUtil.getIcon(IconUtil.IconType.TROPHY, 24, AppTheme.ACCENT_AMBER));
+        JLabel lblTitle = new JLabel("Test Complete!");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
         lblTitle.setForeground(AppTheme.getTextPrimary());
-        lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        lblSubtitle = new JLabel("Great focus! Here is your typing speed and accuracy analysis.", SwingConstants.CENTER);
-        lblSubtitle.setFont(AppTheme.FONT_BODY);
-        lblSubtitle.setForeground(AppTheme.getTextSecondary());
-        lblSubtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        trophyRow.add(lblTrophy);
+        trophyRow.add(lblTitle);
 
-        lblPbBanner = new JLabel("NEW PERSONAL BEST RECORD", IconUtil.getIcon(IconUtil.IconType.TROPHY, 18, AppTheme.ACCENT_AMBER), SwingConstants.CENTER);
-        lblPbBanner.setFont(AppTheme.FONT_SUBHEADER);
-        lblPbBanner.setForeground(AppTheme.ACCENT_AMBER);
-        lblPbBanner.setAlignmentX(Component.CENTER_ALIGNMENT);
-        lblPbBanner.setVisible(false);
+        JLabel lblSub = new JLabel("Great job! Keep practicing to improve further.", SwingConstants.CENTER);
+        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblSub.setForeground(AppTheme.getTextSecondary());
+        lblSub.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        headerPanel.add(lblTitle);
+        headerPanel.add(trophyRow);
         headerPanel.add(Box.createVerticalStrut(4));
-        headerPanel.add(lblSubtitle);
-        headerPanel.add(Box.createVerticalStrut(8));
-        headerPanel.add(lblPbBanner);
+        headerPanel.add(lblSub);
 
         scrollContent.add(headerPanel);
-        scrollContent.add(Box.createVerticalStrut(20));
+        scrollContent.add(Box.createVerticalStrut(18));
 
-        // 2. PRIMARY KPI METRIC CARDS
-        JPanel metricsGrid = new JPanel(new GridLayout(1, 4, 15, 0));
-        metricsGrid.setOpaque(false);
-        metricsGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 115));
+        // 2. 3 HIGHLIGHT METRIC CARDS (WPM, Raw WPM, Accuracy)
+        JPanel highlightRow = new JPanel(new GridLayout(1, 3, 16, 0));
+        highlightRow.setOpaque(false);
+        highlightRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
+        highlightRow.setPreferredSize(new Dimension(960, 95));
 
-        cardWpm = new StatCard(IconUtil.getIcon(IconUtil.IconType.LIGHTNING, 18, AppTheme.ACCENT_AMBER), "Net WPM", "0.0", "Corrected Speed", AppTheme.ACCENT_AMBER);
-        cardAccuracy = new StatCard(IconUtil.getIcon(IconUtil.IconType.TARGET, 18, AppTheme.ACCENT_GREEN), "Accuracy", "0.0%", "Keystroke Precision", AppTheme.ACCENT_GREEN);
-        cardRawWpm = new StatCard(IconUtil.getIcon(IconUtil.IconType.KEYBOARD, 18, AppTheme.ACCENT_BLUE), "Raw WPM", "0.0", "Gross Keystrokes", AppTheme.ACCENT_BLUE);
-        cardCpm = new StatCard(IconUtil.getIcon(IconUtil.IconType.REPORTS, 18, AppTheme.ACCENT_PURPLE), "CPM", "0", "Chars Per Minute", AppTheme.ACCENT_PURPLE);
+        cardWpm = new StatCard(IconUtil.getIcon(IconUtil.IconType.LIGHTNING, 20, AppTheme.ACCENT_AMBER), "WPM", "0", "+12% from last test", AppTheme.ACCENT_AMBER);
+        cardRawWpm = new StatCard(IconUtil.getIcon(IconUtil.IconType.BAR_CHART, 20, AppTheme.ACCENT_BLUE), "Raw WPM", "0", "Gross speed", AppTheme.ACCENT_BLUE);
+        cardAccuracy = new StatCard(IconUtil.getIcon(IconUtil.IconType.TARGET, 20, AppTheme.ACCENT_GREEN), "Accuracy", "0%", "Keystroke precision", AppTheme.ACCENT_GREEN);
 
-        metricsGrid.add(cardWpm);
-        metricsGrid.add(cardAccuracy);
-        metricsGrid.add(cardRawWpm);
-        metricsGrid.add(cardCpm);
+        highlightRow.add(cardWpm);
+        highlightRow.add(cardRawWpm);
+        highlightRow.add(cardAccuracy);
 
-        scrollContent.add(metricsGrid);
-        scrollContent.add(Box.createVerticalStrut(20));
+        scrollContent.add(highlightRow);
+        scrollContent.add(Box.createVerticalStrut(18));
 
-        // 3. PERFORMANCE CHART CARD
+        // 3. 4 MINI CHARACTER STAT CARDS IN A ROW
+        JPanel miniStatsRow = new JPanel(new GridLayout(1, 4, 14, 0));
+        miniStatsRow.setOpaque(false);
+        miniStatsRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 75));
+        miniStatsRow.setPreferredSize(new Dimension(960, 72));
+
+        lblCorrectVal = createValueLabel("0", AppTheme.getTextPrimary());
+        lblIncorrectVal = createValueLabel("0", AppTheme.getTextPrimary());
+        lblExtraVal = createValueLabel("0", AppTheme.getTextPrimary());
+        lblMissedVal = createValueLabel("0", AppTheme.getTextPrimary());
+
+        miniStatsRow.add(createMiniCard("Correct Characters", lblCorrectVal));
+        miniStatsRow.add(createMiniCard("Incorrect Characters", lblIncorrectVal));
+        miniStatsRow.add(createMiniCard("Extra Characters", lblExtraVal));
+        miniStatsRow.add(createMiniCard("Missed Characters", lblMissedVal));
+
+        scrollContent.add(miniStatsRow);
+        scrollContent.add(Box.createVerticalStrut(18));
+
+        // 4. WPM OVER TIME CHART
         chart = new PerformanceChart();
-        chart.setPreferredSize(new Dimension(Integer.MAX_VALUE, 200));
-        chart.setMaximumSize(new Dimension(Integer.MAX_VALUE, 220));
+        chart.setPreferredSize(new Dimension(Integer.MAX_VALUE, 175));
+        chart.setMaximumSize(new Dimension(Integer.MAX_VALUE, 190));
         scrollContent.add(chart);
         scrollContent.add(Box.createVerticalStrut(20));
 
-        // 4. DETAILED BREAKDOWN CARD
-        ModernCard detailsCard = new ModernCard(16);
-        detailsCard.setLayout(new GridLayout(2, 3, 20, 15));
-        detailsCard.setBorder(BorderFactory.createEmptyBorder(18, 25, 18, 25));
-        detailsCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 130));
-
-        lblCorrectVal = createDetailLabel("Correct Characters:", "0", AppTheme.ACCENT_GREEN);
-        lblIncorrectVal = createDetailLabel("Incorrect Characters:", "0", AppTheme.ACCENT_RED);
-        lblExtraVal = createDetailLabel("Extra Characters:", "0", AppTheme.ACCENT_RED_EXTRA);
-        lblMissedVal = createDetailLabel("Missed Characters:", "0", AppTheme.getTextMuted());
-        lblDurationVal = createDetailLabel("Duration:", "0s", AppTheme.getTextPrimary());
-        lblModeVal = createDetailLabel("Test Mode:", "TIME-30", AppTheme.getTextPrimary());
-
-        detailsCard.add(createDetailItem("Correct Characters", lblCorrectVal));
-        detailsCard.add(createDetailItem("Incorrect Characters", lblIncorrectVal));
-        detailsCard.add(createDetailItem("Extra Characters", lblExtraVal));
-        detailsCard.add(createDetailItem("Missed Characters", lblMissedVal));
-        detailsCard.add(createDetailItem("Test Duration", lblDurationVal));
-        detailsCard.add(createDetailItem("Test Mode & Difficulty", lblModeVal));
-
-        scrollContent.add(detailsCard);
-        scrollContent.add(Box.createVerticalStrut(25));
-
         // 5. ACTION BUTTONS ROW
-        JPanel actionsRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        JPanel actionsRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 14, 0));
         actionsRow.setOpaque(false);
+        actionsRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
 
-        ModernButton btnTryAgain = new ModernButton("Try Again", IconUtil.getIcon(IconUtil.IconType.REFRESH, 14, Color.BLACK), ModernButton.ButtonType.ACCENT);
-        btnTryAgain.setFont(AppTheme.FONT_SUBHEADER);
-        btnTryAgain.setPreferredSize(new Dimension(160, 44));
+        ModernButton btnTryAgain = new ModernButton(
+                "Try Again",
+                IconUtil.getIcon(IconUtil.IconType.REFRESH, 14, new Color(15, 18, 28)),
+                ModernButton.ButtonType.PRIMARY
+        );
+        btnTryAgain.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnTryAgain.setPreferredSize(new Dimension(150, 40));
         btnTryAgain.setCornerRadius(8);
         btnTryAgain.addActionListener(e -> mainFrame.startTypingTestWithCurrentSettings());
 
-        ModernButton btnHome = new ModernButton("Dashboard", IconUtil.getIcon(IconUtil.IconType.DASHBOARD, 14, AppTheme.getTextPrimary()), ModernButton.ButtonType.SECONDARY);
-        btnHome.setPreferredSize(new Dimension(140, 44));
-        btnHome.setCornerRadius(8);
-        btnHome.addActionListener(e -> mainFrame.showHome());
-
-        ModernButton btnHistory = new ModernButton("View History", IconUtil.getIcon(IconUtil.IconType.HISTORY, 14, AppTheme.getTextPrimary()), ModernButton.ButtonType.OUTLINE);
-        btnHistory.setPreferredSize(new Dimension(140, 44));
+        ModernButton btnHistory = new ModernButton(
+                "View History",
+                IconUtil.getIcon(IconUtil.IconType.HISTORY, 14, AppTheme.getTextPrimary()),
+                ModernButton.ButtonType.SECONDARY
+        );
+        btnHistory.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnHistory.setPreferredSize(new Dimension(150, 40));
         btnHistory.setCornerRadius(8);
         btnHistory.addActionListener(e -> mainFrame.showHistory());
 
+        ModernButton btnHome = new ModernButton(
+                "Back to Home",
+                IconUtil.getIcon(IconUtil.IconType.HOME, 14, AppTheme.getTextPrimary()),
+                ModernButton.ButtonType.SECONDARY
+        );
+        btnHome.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnHome.setPreferredSize(new Dimension(150, 40));
+        btnHome.setCornerRadius(8);
+        btnHome.addActionListener(e -> mainFrame.showHome());
+
         actionsRow.add(btnTryAgain);
-        actionsRow.add(btnHome);
         actionsRow.add(btnHistory);
+        actionsRow.add(btnHome);
 
         scrollContent.add(actionsRow);
 
@@ -172,50 +176,86 @@ public class ResultPanel extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
     }
 
-    private JLabel createDetailLabel(String title, String val, Color color) {
-        JLabel lbl = new JLabel(val);
-        lbl.setFont(AppTheme.FONT_BODY_BOLD);
+    private JLabel createValueLabel(String text, Color color) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lbl.setForeground(color);
         return lbl;
     }
 
-    private JPanel createDetailItem(String title, JLabel valueLabel) {
-        JPanel p = new JPanel(new BorderLayout(5, 2));
-        p.setOpaque(false);
+    private JPanel createMiniCard(String title, JLabel valLabel) {
+        ModernCard card = new ModernCard(12);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(BorderFactory.createEmptyBorder(10, 14, 10, 14));
+
         JLabel lblTitle = new JLabel(title);
-        lblTitle.setFont(AppTheme.FONT_SMALL);
+        lblTitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblTitle.setForeground(AppTheme.getTextMuted());
-        p.add(lblTitle, BorderLayout.NORTH);
-        p.add(valueLabel, BorderLayout.CENTER);
+
+        card.add(lblTitle);
+        card.add(Box.createVerticalStrut(4));
+        card.add(valLabel);
+        return card;
+    }
+
+    private JPanel createDetailCell(String title, JLabel valLabel) {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setOpaque(false);
+
+        JLabel lblTitle = new JLabel(title);
+        lblTitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblTitle.setForeground(AppTheme.getTextMuted());
+
+        p.add(lblTitle);
+        p.add(Box.createVerticalStrut(2));
+        p.add(valLabel);
         return p;
     }
 
     public void setResult(TypingResult result) {
-        this.currentResult = result;
         if (result == null) return;
 
-        cardWpm.setValue(String.format("%.1f", result.getWpm()));
-        cardAccuracy.setValue(String.format("%.1f%%", result.getAccuracy()));
-        cardRawWpm.setValue(String.format("%.1f", result.getRawWpm()));
-        cardCpm.setValue(String.valueOf(result.getCpm()));
+        cardWpm.setValue(String.format("%.0f", result.getWpm()));
+        cardRawWpm.setValue(String.format("%.0f", result.getRawWpm()));
+        cardAccuracy.setValue(String.format("%.0f%%", result.getAccuracy()));
+
+        // Calculate comparison with previous test
+        double prevWpm = historyService.getPreviousTestWpm(result.getUserId(), result.getId());
+        if (prevWpm > 0) {
+            double diff = ((result.getWpm() - prevWpm) / prevWpm) * 100.0;
+            if (diff >= 0) {
+                cardWpm.setTrend(String.format("+%.0f%% from last test", diff));
+            } else {
+                cardWpm.setTrend(String.format("%.0f%% from last test", diff));
+            }
+        } else {
+            cardWpm.setTrend("+100% First test");
+        }
 
         lblCorrectVal.setText(String.valueOf(result.getCorrectChars()));
         lblIncorrectVal.setText(String.valueOf(result.getIncorrectChars()));
         lblExtraVal.setText(String.valueOf(result.getExtraChars()));
         lblMissedVal.setText(String.valueOf(result.getMissedChars()));
-        lblDurationVal.setText(result.getDurationSeconds() + " seconds");
-        lblModeVal.setText(result.getTestMode() + " (" + result.getDifficulty() + ")");
+        lblCpmVal.setText(String.valueOf(result.getCpm()));
+        lblTimeTakenVal.setText(result.getTimeTaken() + "s");
 
-        // Personal best check
-        User user = authService.getCurrentUser();
-        if (user != null) {
-            double pb = historyService.getPersonalBestWpm(user.getId());
-            boolean isNewPb = (result.getWpm() >= pb && result.getWpm() > 0);
-            lblPbBanner.setVisible(isNewPb);
+        String mode = result.getTestMode();
+        if (mode.toLowerCase().contains("time")) {
+            lblTestModeVal.setText("Time");
+        } else {
+            lblTestModeVal.setText("Words");
         }
 
-        // Plot WPM progression chart
-        chart.setData(result.getSecondBySecondWpm());
-        chart.setChartTitle("WPM Speed Progression (" + result.getTestMode() + ")");
+        lblDifficultyVal.setText(result.getDifficulty());
+        lblDifficultyVal.setForeground(
+                "Easy".equalsIgnoreCase(result.getDifficulty()) ? AppTheme.ACCENT_GREEN :
+                ("Hard".equalsIgnoreCase(result.getDifficulty()) ? AppTheme.ACCENT_RED : AppTheme.ACCENT_AMBER)
+        );
+
+        // Chart Data
+        if (result.getSecondBySecondWpm() != null && !result.getSecondBySecondWpm().isEmpty()) {
+            chart.setData(result.getSecondBySecondWpm());
+        }
     }
 }

@@ -27,3 +27,7 @@ backup_old_main/
 # Native bundle & desktop shortcuts
 TypeRush-App/
 *.lnk
+dist/TypeRush-v1.0-Windows/
+tools/IconGenerator.exe
+tools/assets/
+

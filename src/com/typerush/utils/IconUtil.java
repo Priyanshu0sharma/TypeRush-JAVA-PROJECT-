@@ -32,8 +32,15 @@ public class IconUtil {
         CHECK,
         LOCK,
         SESSIONS,
+        KEYBOARD,
+        HOME,
+        BELL,
+        SUN,
+        BAR_CHART,
+        TRASH,
+        EYE,
         ARROW_RIGHT,
-        KEYBOARD
+        FIRE
     }
 
     public static Icon getIcon(IconType type, int size, Color color) {
@@ -258,6 +265,88 @@ public class IconUtil {
                     g2.draw(new Line2D.Float(s * 0.1f, s * 0.5f, s * 0.88f, s * 0.5f));
                     g2.draw(new Line2D.Float(s * 0.58f, s * 0.2f, s * 0.88f, s * 0.5f));
                     g2.draw(new Line2D.Float(s * 0.58f, s * 0.8f, s * 0.88f, s * 0.5f));
+                    break;
+                }
+                case HOME: {
+                    // House roof & body
+                    Path2D roof = new Path2D.Float();
+                    roof.moveTo(0, s * 0.45f);
+                    roof.lineTo(s * 0.5f, s * 0.08f);
+                    roof.lineTo(s, s * 0.45f);
+                    g2.draw(roof);
+                    g2.draw(new RoundRectangle2D.Float(s * 0.18f, s * 0.45f, s * 0.64f, s * 0.5f, 2, 2));
+                    g2.draw(new Line2D.Float(s * 0.42f, s * 0.95f, s * 0.42f, s * 0.65f));
+                    g2.draw(new Line2D.Float(s * 0.58f, s * 0.95f, s * 0.58f, s * 0.65f));
+                    g2.draw(new Line2D.Float(s * 0.42f, s * 0.65f, s * 0.58f, s * 0.65f));
+                    break;
+                }
+                case BELL: {
+                    // Notification bell
+                    Path2D bell = new Path2D.Float();
+                    bell.moveTo(s * 0.5f, s * 0.1f);
+                    bell.curveTo(s * 0.25f, s * 0.2f, s * 0.2f, s * 0.6f, s * 0.1f, s * 0.78f);
+                    bell.lineTo(s * 0.9f, s * 0.78f);
+                    bell.curveTo(s * 0.8f, s * 0.6f, s * 0.75f, s * 0.2f, s * 0.5f, s * 0.1f);
+                    bell.closePath();
+                    g2.draw(bell);
+                    g2.draw(new Arc2D.Float(s * 0.4f, s * 0.82f, s * 0.2f, s * 0.14f, 180, 180, Arc2D.OPEN));
+                    break;
+                }
+                case SUN: {
+                    // Sun circle with 8 rays
+                    g2.draw(new Ellipse2D.Float(s * 0.25f, s * 0.25f, s * 0.5f, s * 0.5f));
+                    g2.draw(new Line2D.Float(s * 0.5f, 0, s * 0.5f, s * 0.16f));
+                    g2.draw(new Line2D.Float(s * 0.5f, s * 0.84f, s * 0.5f, s));
+                    g2.draw(new Line2D.Float(0, s * 0.5f, s * 0.16f, s * 0.5f));
+                    g2.draw(new Line2D.Float(s * 0.84f, s * 0.5f, s, s * 0.5f));
+                    g2.draw(new Line2D.Float(s * 0.16f, s * 0.16f, s * 0.28f, s * 0.28f));
+                    g2.draw(new Line2D.Float(s * 0.72f, s * 0.72f, s * 0.84f, s * 0.84f));
+                    g2.draw(new Line2D.Float(s * 0.84f, s * 0.16f, s * 0.72f, s * 0.28f));
+                    g2.draw(new Line2D.Float(s * 0.28f, s * 0.72f, s * 0.16f, s * 0.84f));
+                    break;
+                }
+                case BAR_CHART: {
+                    // 3-column bar chart
+                    float barW = s * 0.22f;
+                    g2.draw(new RoundRectangle2D.Float(s * 0.08f, s * 0.55f, barW, s * 0.4f, 2, 2));
+                    g2.draw(new RoundRectangle2D.Float(s * 0.39f, s * 0.25f, barW, s * 0.7f, 2, 2));
+                    g2.draw(new RoundRectangle2D.Float(s * 0.70f, s * 0.42f, barW, s * 0.53f, 2, 2));
+                    break;
+                }
+                case TRASH: {
+                    // Trash can with lid
+                    g2.draw(new Line2D.Float(s * 0.15f, s * 0.22f, s * 0.85f, s * 0.22f));
+                    g2.draw(new RoundRectangle2D.Float(s * 0.35f, s * 0.1f, s * 0.3f, s * 0.12f, 2, 2));
+                    Path2D can = new Path2D.Float();
+                    can.moveTo(s * 0.25f, s * 0.22f);
+                    can.lineTo(s * 0.3f, s * 0.9f);
+                    can.lineTo(s * 0.7f, s * 0.9f);
+                    can.lineTo(s * 0.75f, s * 0.22f);
+                    g2.draw(can);
+                    g2.draw(new Line2D.Float(s * 0.42f, s * 0.35f, s * 0.42f, s * 0.78f));
+                    g2.draw(new Line2D.Float(s * 0.58f, s * 0.35f, s * 0.58f, s * 0.78f));
+                    break;
+                }
+                case EYE: {
+                    // Eye shape with pupil
+                    Path2D eye = new Path2D.Float();
+                    eye.moveTo(0, s * 0.5f);
+                    eye.quadTo(s * 0.5f, s * 0.1f, s, s * 0.5f);
+                    eye.quadTo(s * 0.5f, s * 0.9f, 0, s * 0.5f);
+                    g2.draw(eye);
+                    g2.fill(new Ellipse2D.Float(s * 0.38f, s * 0.38f, s * 0.24f, s * 0.24f));
+                    break;
+                }
+                case FIRE: {
+                    // Flame / Fire icon
+                    Path2D flame = new Path2D.Float();
+                    flame.moveTo(s * 0.5f, 0);
+                    flame.curveTo(s * 0.65f, s * 0.25f, s * 0.95f, s * 0.45f, s * 0.85f, s * 0.75f);
+                    flame.curveTo(s * 0.78f, s * 0.95f, s * 0.3f, s * 1.0f, s * 0.15f, s * 0.78f);
+                    flame.curveTo(s * 0.05f, s * 0.55f, s * 0.28f, s * 0.40f, s * 0.42f, s * 0.45f);
+                    flame.curveTo(s * 0.45f, s * 0.32f, s * 0.38f, s * 0.18f, s * 0.5f, 0);
+                    flame.closePath();
+                    g2.fill(flame);
                     break;
                 }
             }

@@ -27,6 +27,9 @@ if (Test-Path "build_jar") {
 }
 New-Item -ItemType Directory -Path "build_jar" | Out-Null
 Copy-Item -Recurse -Force "bin\*" "build_jar\"
+if (Test-Path "assets") {
+    Copy-Item -Recurse -Force "assets" "build_jar\"
+}
 
 Push-Location "build_jar"
 try {

@@ -7,6 +7,7 @@ import com.typerush.validation.ValidationUtil;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 
 /**
  * Service managing user authentication, registration, password hashing (SHA-256),
@@ -108,6 +109,10 @@ public class AuthService {
 
     public com.typerush.dao.LoginHistoryDAO getLoginHistoryDAO() {
         return loginHistoryDAO;
+    }
+
+    public List<com.typerush.model.LoginRecord> getUserLoginHistory(int userId) {
+        return loginHistoryDAO.getHistoryByUserId(userId);
     }
 
     public synchronized void logout() {

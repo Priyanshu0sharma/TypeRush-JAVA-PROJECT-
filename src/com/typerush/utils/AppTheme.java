@@ -43,46 +43,53 @@ public class AppTheme {
         return currentMode == ThemeMode.DARK;
     }
 
-    // MONKEYTYPE SIGNATURE ACCENTS
-    public static final Color ACCENT_AMBER = new Color(226, 183, 20);    // #E2B714 (Signature Monkeytype Yellow)
-    public static final Color ACCENT_AMBER_HOVER = new Color(245, 200, 35);
-    public static final Color ACCENT_GREEN = new Color(74, 222, 128);     // #4ADE80 (Correct characters)
-    public static final Color ACCENT_RED = new Color(239, 68, 68);        // #EF4444 (Incorrect characters)
-    public static final Color ACCENT_RED_EXTRA = new Color(248, 113, 113); // #F87171 (Extra typed characters)
-    public static final Color ACCENT_BLUE = new Color(96, 165, 250);      // #60A5FA (Info/Metrics)
-    public static final Color ACCENT_PURPLE = new Color(192, 132, 252);   // #C084FC (Modes)
+    // SIGNATURE TYPERUSH PREMIUM PALETTE (Exact Match to Design Reference)
+    public static final Color ACCENT_AMBER = new Color(245, 158, 11);     // #F59E0B Warm Amber/Gold
+    public static final Color ACCENT_AMBER_HOVER = new Color(251, 191, 36); // #FBBF24
+    public static final Color ACCENT_AMBER_DARK = new Color(217, 119, 6);   // #D97706
+    public static final Color ACCENT_GREEN = new Color(34, 197, 94);       // #22C55E Vibrant Emerald Green
+    public static final Color ACCENT_RED = new Color(239, 68, 68);         // #EF4444 Error Coral Red
+    public static final Color ACCENT_RED_EXTRA = new Color(248, 113, 113);  // #F87171 Extra Typed
+    public static final Color ACCENT_BLUE = new Color(56, 189, 248);       // #38BDF8 Soft Sky Blue
+    public static final Color ACCENT_PURPLE = new Color(168, 85, 247);     // #A855F7 Royal Purple
+    public static final Color ACCENT_PINK = new Color(236, 72, 153);       // #EC4899 Accent Pink
+    public static final Color ACCENT_ORANGE = new Color(249, 115, 22);     // #F97316 Warm Orange
 
-    // DYNAMIC THEME COLORS
+    // DYNAMIC SURFACE COLORS (Deep Midnight Navy & Charcoal-Blue)
     public static Color getBackground() {
-        return isDarkMode() ? new Color(22, 23, 27) : new Color(248, 250, 252);
+        return isDarkMode() ? new Color(11, 14, 20) : new Color(248, 250, 252); // #0B0E14
     }
 
     public static Color getSidebarBackground() {
-        return isDarkMode() ? new Color(26, 27, 32) : new Color(241, 245, 249);
+        return isDarkMode() ? new Color(15, 18, 28) : new Color(241, 245, 249); // #0F121C
     }
 
     public static Color getCardBackground() {
-        return isDarkMode() ? new Color(32, 34, 40) : new Color(255, 255, 255);
+        return isDarkMode() ? new Color(19, 24, 38) : new Color(255, 255, 255); // #131826
+    }
+
+    public static Color getCardSecondaryBackground() {
+        return isDarkMode() ? new Color(24, 31, 48) : new Color(241, 245, 249); // #181F30
     }
 
     public static Color getCardBorder() {
-        return isDarkMode() ? new Color(46, 49, 58) : new Color(226, 232, 240);
+        return isDarkMode() ? new Color(31, 39, 61) : new Color(226, 232, 240); // #1F273D
     }
 
     public static Color getInputBorder() {
-        return isDarkMode() ? new Color(52, 56, 68) : new Color(203, 213, 225);
+        return isDarkMode() ? new Color(37, 47, 72) : new Color(203, 213, 225); // #252F48
     }
 
     public static Color getTextPrimary() {
-        return isDarkMode() ? new Color(232, 234, 238) : new Color(15, 23, 42);
+        return isDarkMode() ? new Color(248, 250, 252) : new Color(15, 23, 42); // #F8FAFC
     }
 
     public static Color getTextSecondary() {
-        return isDarkMode() ? new Color(156, 161, 172) : new Color(71, 85, 105);
+        return isDarkMode() ? new Color(148, 163, 184) : new Color(71, 85, 105); // #94A3B8
     }
 
     public static Color getTextMuted() {
-        return isDarkMode() ? new Color(105, 110, 122) : new Color(148, 163, 184); // Target untyped text
+        return isDarkMode() ? new Color(100, 116, 139) : new Color(148, 163, 184); // #64748B
     }
 
     public static Color getCaretColor() {
@@ -90,7 +97,7 @@ public class AppTheme {
     }
 
     public static Color getInputBackground() {
-        return isDarkMode() ? new Color(25, 26, 31) : new Color(241, 245, 249);
+        return isDarkMode() ? new Color(16, 20, 32) : new Color(241, 245, 249); // #101420
     }
 
     // TYPOGRAPHY

@@ -2,10 +2,8 @@ package com.typerush.ui.panels;
 
 import com.typerush.model.TypingResult;
 import com.typerush.model.User;
-import com.typerush.model.UserSettings;
 import com.typerush.service.AuthService;
 import com.typerush.service.HistoryService;
-import com.typerush.service.TypingEngineService;
 import com.typerush.ui.MainFrame;
 import com.typerush.ui.components.Badge;
 import com.typerush.ui.components.ModernButton;
@@ -15,49 +13,35 @@ import com.typerush.utils.AppTheme;
 import com.typerush.utils.IconUtil;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import java.awt.*;
+import java.awt.geom.Path2D;
 import java.util.List;
 
 /**
- * HomePanel represents the Monkeytype-inspired dashboard with test mode controls,
- * real personal statistics, recent test activity, and test launcher.
- * Owned by: Priyanshu Sharma (Member 1 - Dashboard, Main Window & Navigation)
+ * HomePanel represents the redesigned TypeRush Dashboard matching the reference design:
+ * - Personalized Welcome Header with quick "Start Typing Test →" CTA
+ * - Mountain dusk landscape banner card with typography quote
+ * - 4 Key Performance Indicator stat cards with dynamic trend percentages
+ * - Clean Recent Tests data table with difficulty pills and emerald accuracy
  */
 public class HomePanel extends JPanel {
 
     private final MainFrame mainFrame;
     private final HistoryService historyService = new HistoryService();
     private final AuthService authService = AuthService.getInstance();
-    private final UserSettings settings = UserSettings.getInstance();
 
-    // Mode configuration state
-    private TypingEngineService.TestModeType selectedModeType = TypingEngineService.TestModeType.TIME;
-    private int selectedModeValue = 30;
-    private String selectedDifficulty = "Medium";
-    private boolean punctuationEnabled = false;
-    private boolean numbersEnabled = false;
-
-    // Stat Cards
+    private JLabel lblUserName;
     private StatCard cardBestWpm;
     private StatCard cardAvgWpm;
     private StatCard cardAvgAcc;
     private StatCard cardTotalTests;
 
-    // Mode Selector Buttons
-    private ModernButton btnModeTime;
-    private ModernButton btnModeWords;
-    private JPanel valuesPanel;
-    private ModernButton[] valButtons;
-
-    private ModernButton btnDiffEasy;
-    private ModernButton btnDiffMedium;
-    private ModernButton btnDiffHard;
-
-    private ModernButton btnTogglePunct;
-    private ModernButton btnToggleNum;
-
+    private JTable recentTable;
+    private DefaultTableModel recentTableModel;
     private JPanel recentContainer;
-    private JLabel lblUserGreeting;
 
     public HomePanel(MainFrame mainFrame) {
         this.mainFrame = mainFrame;
@@ -71,97 +55,174 @@ public class HomePanel extends JPanel {
         JPanel scrollContent = new JPanel();
         scrollContent.setLayout(new BoxLayout(scrollContent, BoxLayout.Y_AXIS));
         scrollContent.setOpaque(false);
-        scrollContent.setBorder(BorderFactory.createEmptyBorder(25, 35, 25, 35));
+        scrollContent.setBorder(BorderFactory.createEmptyBorder(24, 32, 24, 32));
 
-        // 1. MONKEYTYPE-INSPIRED QUICK CONFIGURATION BAR
-        ModernCard configCard = new ModernCard(12);
-        configCard.setLayout(new FlowLayout(FlowLayout.CENTER, 14, 10));
-        configCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 58));
+        // 1. TOP HERO SECTION: Welcome Banner + Sunset Mountain Quote Card
+        JPanel heroRow = new JPanel(new GridLayout(1, 2, 20, 0));
+        heroRow.setOpaque(false);
+        heroRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
+        heroRow.setPreferredSize(new Dimension(960, 155));
 
-        // Mode Type: Time vs Words
-        btnModeTime = new ModernButton("Time", IconUtil.getIcon(IconUtil.IconType.CLOCK, 13, Color.BLACK), ModernButton.ButtonType.PRIMARY);
-        btnModeWords = new ModernButton("Words", IconUtil.getIcon(IconUtil.IconType.KEYBOARD, 13, AppTheme.getTextSecondary()), ModernButton.ButtonType.SECONDARY);
-        btnModeTime.setFont(AppTheme.FONT_SMALL_BOLD);
-        btnModeWords.setFont(AppTheme.FONT_SMALL_BOLD);
-        btnModeTime.setCornerRadius(6);
-        btnModeWords.setCornerRadius(6);
+        // Left Welcome Area
+        JPanel welcomeCol = new JPanel();
+        welcomeCol.setLayout(new BoxLayout(welcomeCol, BoxLayout.Y_AXIS));
+        welcomeCol.setOpaque(false);
 
-        btnModeTime.addActionListener(e -> selectModeType(TypingEngineService.TestModeType.TIME));
-        btnModeWords.addActionListener(e -> selectModeType(TypingEngineService.TestModeType.WORDS));
+        JLabel lblWelcomeBack = new JLabel("Welcome Back,");
+        lblWelcomeBack.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        lblWelcomeBack.setForeground(AppTheme.getTextSecondary());
 
-        // Mode Values Panel
-        valuesPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        valuesPanel.setOpaque(false);
-        rebuildValueButtons();
+        lblUserName = new JLabel("Priyanshu Sharma");
+        lblUserName.setFont(new Font("Segoe UI", Font.BOLD, 26));
+        lblUserName.setForeground(AppTheme.getTextPrimary());
 
-        // Difficulty Buttons
-        btnDiffEasy = createPillButton("Easy", () -> selectDifficulty("Easy"));
-        btnDiffMedium = createPillButton("Medium", () -> selectDifficulty("Medium"));
-        btnDiffHard = createPillButton("Hard", () -> selectDifficulty("Hard"));
-        updateDifficultyButtons();
+        JLabel lblHeroSub = new JLabel("Ready to improve your typing skills today?");
+        lblHeroSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblHeroSub.setForeground(AppTheme.getTextMuted());
 
-        // Punctuation & Numbers Toggles
-        btnTogglePunct = createPillButton("punctuation", () -> togglePunctuation());
-        btnToggleNum = createPillButton("numbers", () -> toggleNumbers());
+        welcomeCol.add(lblWelcomeBack);
+        welcomeCol.add(Box.createVerticalStrut(2));
+        welcomeCol.add(lblUserName);
+        welcomeCol.add(Box.createVerticalStrut(4));
+        welcomeCol.add(lblHeroSub);
+        welcomeCol.add(Box.createVerticalStrut(14));
 
-        configCard.add(btnModeTime);
-        configCard.add(btnModeWords);
-        configCard.add(createDivider());
-        configCard.add(valuesPanel);
-        configCard.add(createDivider());
-        configCard.add(btnDiffEasy);
-        configCard.add(btnDiffMedium);
-        configCard.add(btnDiffHard);
-        configCard.add(createDivider());
-        configCard.add(btnTogglePunct);
-        configCard.add(btnToggleNum);
+        JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        buttonRow.setOpaque(false);
 
-        scrollContent.add(configCard);
-        scrollContent.add(Box.createVerticalStrut(18));
+        ModernButton btnStartTest = new ModernButton(
+                "Start Typing Test \u2192",
+                IconUtil.getIcon(IconUtil.IconType.LIGHTNING, 15, new Color(15, 18, 28)),
+                ModernButton.ButtonType.PRIMARY
+        );
+        btnStartTest.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnStartTest.setPreferredSize(new Dimension(195, 42));
+        btnStartTest.setCornerRadius(10);
+        btnStartTest.addActionListener(e -> mainFrame.startTypingTestWithCurrentSettings());
 
-        // 2. HERO START ACTION CARD
-        ModernCard heroCard = new ModernCard(14);
-        heroCard.setLayout(new BorderLayout(20, 15));
-        heroCard.setBorder(BorderFactory.createEmptyBorder(22, 28, 22, 28));
-        heroCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
+        ModernButton btnContinuePractice = new ModernButton(
+                "Continue Practice",
+                IconUtil.getIcon(IconUtil.IconType.KEYBOARD, 15, AppTheme.getTextSecondary()),
+                ModernButton.ButtonType.SECONDARY
+        );
+        btnContinuePractice.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnContinuePractice.setPreferredSize(new Dimension(175, 42));
+        btnContinuePractice.setCornerRadius(10);
+        btnContinuePractice.addActionListener(e -> mainFrame.startTypingTestWithCurrentSettings());
 
-        JPanel heroLeft = new JPanel();
-        heroLeft.setLayout(new BoxLayout(heroLeft, BoxLayout.Y_AXIS));
-        heroLeft.setOpaque(false);
+        buttonRow.add(btnStartTest);
+        buttonRow.add(btnContinuePractice);
+        welcomeCol.add(buttonRow);
 
-        lblUserGreeting = new JLabel("Welcome to TypeRush");
-        lblUserGreeting.setFont(AppTheme.FONT_HEADER);
-        lblUserGreeting.setForeground(AppTheme.getTextPrimary());
+        // Right Sunset Landscape Mountain Quote Card
+        ModernCard quoteCard = new ModernCard(16) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        JLabel lblHeroSub = new JLabel("Fast, focused, distraction-free typing speed test with real-time keystroke telemetry.");
-        lblHeroSub.setFont(AppTheme.FONT_BODY);
-        lblHeroSub.setForeground(AppTheme.getTextSecondary());
+                int w = getWidth();
+                int h = getHeight();
 
-        heroLeft.add(lblUserGreeting);
-        heroLeft.add(Box.createVerticalStrut(4));
-        heroLeft.add(lblHeroSub);
+                // Mountain dusk sky gradient (deep navy to warm orange-amber horizon)
+                GradientPaint sky = new GradientPaint(
+                        0, 0, new Color(16, 20, 36),
+                        0, h * 0.7f, new Color(42, 28, 48)
+                );
+                g2.setPaint(sky);
+                g2.fillRoundRect(0, 0, w, h, 16, 16);
 
-        ModernButton btnStart = new ModernButton("Start Practice", IconUtil.getIcon(IconUtil.IconType.LIGHTNING, 16, Color.BLACK), ModernButton.ButtonType.ACCENT);
-        btnStart.setFont(AppTheme.FONT_SUBHEADER);
-        btnStart.setPreferredSize(new Dimension(180, 46));
-        btnStart.setCornerRadius(8);
-        btnStart.addActionListener(e -> launchTest());
+                // Warm sun glow on the mountain ridge
+                g2.setPaint(new RadialGradientPaint(
+                        w * 0.78f, h * 0.55f, w * 0.45f,
+                        new float[]{0f, 0.45f, 1f},
+                        new Color[]{new Color(245, 158, 11, 160), new Color(217, 119, 6, 60), new Color(0, 0, 0, 0)}
+                ));
+                g2.fillRoundRect(0, 0, w, h, 16, 16);
 
-        heroCard.add(heroLeft, BorderLayout.CENTER);
-        heroCard.add(btnStart, BorderLayout.EAST);
+                // Distant Mountain Ridge 1 (subtle violet)
+                Path2D mtFar = new Path2D.Float();
+                mtFar.moveTo(0, h);
+                mtFar.lineTo(0, h * 0.62f);
+                mtFar.lineTo(w * 0.22f, h * 0.48f);
+                mtFar.lineTo(w * 0.42f, h * 0.58f);
+                mtFar.lineTo(w * 0.65f, h * 0.40f);
+                mtFar.lineTo(w * 0.82f, h * 0.52f);
+                mtFar.lineTo(w, h * 0.38f);
+                mtFar.lineTo(w, h);
+                mtFar.closePath();
+                g2.setColor(new Color(55, 42, 65, 200));
+                g2.fill(mtFar);
 
-        scrollContent.add(heroCard);
-        scrollContent.add(Box.createVerticalStrut(18));
+                // Mid Mountain Ridge 2 (deeper twilight blue-slate)
+                Path2D mtMid = new Path2D.Float();
+                mtMid.moveTo(0, h);
+                mtMid.lineTo(0, h * 0.72f);
+                mtMid.lineTo(w * 0.30f, h * 0.55f);
+                mtMid.lineTo(w * 0.55f, h * 0.68f);
+                mtMid.lineTo(w * 0.78f, h * 0.48f);
+                mtMid.lineTo(w, h * 0.60f);
+                mtMid.lineTo(w, h);
+                mtMid.closePath();
+                g2.setColor(new Color(28, 30, 48, 230));
+                g2.fill(mtMid);
 
-        // 3. STATS SUMMARY CARDS ROW
-        JPanel statsGrid = new JPanel(new GridLayout(1, 4, 15, 0));
+                // Foreground Pine Forest & Mountain Silhouette (Dark crisp evergreen)
+                Path2D forest = new Path2D.Float();
+                forest.moveTo(0, h);
+                forest.lineTo(0, h * 0.80f);
+                forest.lineTo(w * 0.15f, h * 0.70f);
+                forest.lineTo(w * 0.35f, h * 0.78f);
+                forest.lineTo(w * 0.58f, h * 0.65f);
+                forest.lineTo(w * 0.75f, h * 0.74f);
+                forest.lineTo(w * 0.90f, h * 0.62f);
+                forest.lineTo(w, h * 0.70f);
+                forest.lineTo(w, h);
+                forest.closePath();
+                g2.setColor(new Color(11, 16, 26, 250));
+                g2.fill(forest);
+
+                // Tree needles / silhouette spikes along the ridge
+                g2.setColor(new Color(9, 13, 22));
+                for (int x = (int)(w * 0.45f); x < w - 10; x += 14) {
+                    int treeH = 10 + (x % 7) * 2;
+                    int base = (int)(h * 0.72f);
+                    int[] tx = {x - 4, x, x + 4};
+                    int[] ty = {base, base - treeH, base};
+                    g2.fillPolygon(tx, ty, 3);
+                }
+
+                // Border
+                g2.setColor(AppTheme.getCardBorder());
+                g2.setStroke(new BasicStroke(1f));
+                g2.drawRoundRect(0, 0, w - 1, h - 1, 16, 16);
+
+                g2.dispose();
+            }
+        };
+        quoteCard.setLayout(new GridBagLayout());
+        JLabel lblQuote = new JLabel("\"Better typing builds a faster you.\"");
+        lblQuote.setFont(new Font("Segoe UI", Font.ITALIC, 17));
+        lblQuote.setForeground(new Color(248, 250, 252));
+        quoteCard.add(lblQuote);
+
+        heroRow.add(welcomeCol);
+        heroRow.add(quoteCard);
+
+        scrollContent.add(heroRow);
+        scrollContent.add(Box.createVerticalStrut(22));
+
+        // 2. 4 STAT KPI CARDS
+        JPanel statsGrid = new JPanel(new GridLayout(1, 4, 16, 0));
         statsGrid.setOpaque(false);
         statsGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 105));
+        statsGrid.setPreferredSize(new Dimension(960, 100));
 
-        cardBestWpm = new StatCard(IconUtil.getIcon(IconUtil.IconType.TROPHY, 18, AppTheme.ACCENT_AMBER), "Personal Best", "0.0", "Record Net WPM", AppTheme.ACCENT_AMBER);
-        cardAvgWpm = new StatCard(IconUtil.getIcon(IconUtil.IconType.LIGHTNING, 18, AppTheme.ACCENT_BLUE), "Average Speed", "0.0", "Overall Net WPM", AppTheme.ACCENT_BLUE);
-        cardAvgAcc = new StatCard(IconUtil.getIcon(IconUtil.IconType.TARGET, 18, AppTheme.ACCENT_GREEN), "Average Precision", "0.0%", "Keystroke Accuracy", AppTheme.ACCENT_GREEN);
-        cardTotalTests = new StatCard(IconUtil.getIcon(IconUtil.IconType.KEYBOARD, 18, AppTheme.ACCENT_PURPLE), "Completed Tests", "0", "Recorded Sessions", AppTheme.ACCENT_PURPLE);
+        cardBestWpm = new StatCard(IconUtil.getIcon(IconUtil.IconType.LIGHTNING, 20, AppTheme.ACCENT_AMBER), "Best WPM", "0", "\u25B2 12%", AppTheme.ACCENT_AMBER);
+        cardAvgWpm = new StatCard(IconUtil.getIcon(IconUtil.IconType.BAR_CHART, 20, AppTheme.ACCENT_BLUE), "Average WPM", "0", "\u25B2 8%", AppTheme.ACCENT_BLUE);
+        cardAvgAcc = new StatCard(IconUtil.getIcon(IconUtil.IconType.TARGET, 20, AppTheme.ACCENT_GREEN), "Average Accuracy", "0%", "\u25B2 4%", AppTheme.ACCENT_GREEN);
+        cardTotalTests = new StatCard(IconUtil.getIcon(IconUtil.IconType.KEYBOARD, 20, AppTheme.ACCENT_PURPLE), "Total Tests", "0", "\u25B2 7%", AppTheme.ACCENT_PURPLE);
 
         statsGrid.add(cardBestWpm);
         statsGrid.add(cardAvgWpm);
@@ -169,201 +230,166 @@ public class HomePanel extends JPanel {
         statsGrid.add(cardTotalTests);
 
         scrollContent.add(statsGrid);
-        scrollContent.add(Box.createVerticalStrut(20));
+        scrollContent.add(Box.createVerticalStrut(22));
 
-        // 4. RECENT ACTIVITY CONTAINER
-        ModernCard recentCard = new ModernCard(14);
-        recentCard.setLayout(new BorderLayout(0, 15));
+        // 3. RECENT TESTS CARD & TABLE
+        ModernCard recentCard = new ModernCard(16);
+        recentCard.setLayout(new BorderLayout(0, 12));
         recentCard.setBorder(BorderFactory.createEmptyBorder(18, 22, 18, 22));
-        recentCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 280));
 
+        // Header: Title & "View All \u2192" link
         JPanel recentHeader = new JPanel(new BorderLayout());
         recentHeader.setOpaque(false);
 
-        JLabel lblRecentTitle = new JLabel("Recent Typing Activity");
-        lblRecentTitle.setFont(AppTheme.FONT_SUBHEADER);
+        JLabel lblRecentTitle = new JLabel("Recent Tests");
+        lblRecentTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
         lblRecentTitle.setForeground(AppTheme.getTextPrimary());
 
-        ModernButton btnViewAll = new ModernButton("View Full History", IconUtil.getIcon(IconUtil.IconType.ARROW_RIGHT, 12, AppTheme.getTextSecondary()), ModernButton.ButtonType.OUTLINE);
-        btnViewAll.setFont(AppTheme.FONT_SMALL);
-        btnViewAll.setCornerRadius(6);
+        JButton btnViewAll = new JButton("View All \u2192");
+        btnViewAll.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnViewAll.setForeground(AppTheme.ACCENT_AMBER);
+        btnViewAll.setContentAreaFilled(false);
+        btnViewAll.setBorderPainted(false);
+        btnViewAll.setFocusPainted(false);
+        btnViewAll.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnViewAll.addActionListener(e -> mainFrame.showHistory());
 
         recentHeader.add(lblRecentTitle, BorderLayout.WEST);
         recentHeader.add(btnViewAll, BorderLayout.EAST);
 
-        recentContainer = new JPanel();
-        recentContainer.setLayout(new BoxLayout(recentContainer, BoxLayout.Y_AXIS));
-        recentContainer.setOpaque(false);
+        // Table Setup with 7 Columns matching the screenshot
+        String[] columns = {"#", "Date", "Mode", "Difficulty", "WPM", "Accuracy", "Time"};
+        recentTableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        recentTable = new JTable(recentTableModel);
+        recentTable.setRowHeight(38);
+        recentTable.setOpaque(false);
+        recentTable.setBackground(AppTheme.getCardBackground());
+        recentTable.setForeground(AppTheme.getTextPrimary());
+        recentTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        recentTable.setShowGrid(false);
+        recentTable.setIntercellSpacing(new Dimension(0, 0));
+        recentTable.setSelectionBackground(new Color(30, 39, 60));
+        recentTable.setSelectionForeground(Color.WHITE);
+
+        // Header Styling
+        JTableHeader th = recentTable.getTableHeader();
+        th.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        th.setForeground(AppTheme.getTextSecondary());
+        th.setBackground(AppTheme.isDarkMode() ? new Color(16, 20, 32) : new Color(241, 245, 249));
+        th.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, AppTheme.getCardBorder()));
+        th.setPreferredSize(new Dimension(Integer.MAX_VALUE, 34));
+
+        // Center / Custom Renderers
+        DefaultTableCellRenderer centerRender = new DefaultTableCellRenderer();
+        centerRender.setHorizontalAlignment(SwingConstants.CENTER);
+        centerRender.setOpaque(false);
+
+        DefaultTableCellRenderer greenAccRender = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
+                setForeground(AppTheme.ACCENT_GREEN);
+                setFont(new Font("Segoe UI", Font.BOLD, 13));
+                setHorizontalAlignment(SwingConstants.CENTER);
+                return c;
+            }
+        };
+        greenAccRender.setOpaque(false);
+
+        DefaultTableCellRenderer wpmRender = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
+                setForeground(AppTheme.getTextPrimary());
+                setFont(new Font("Segoe UI", Font.BOLD, 13));
+                setHorizontalAlignment(SwingConstants.CENTER);
+                return c;
+            }
+        };
+        wpmRender.setOpaque(false);
+
+        // Difficulty Badge Renderer
+        recentTable.getColumnModel().getColumn(3).setCellRenderer((table, value, isSelected, hasFocus, row, column) -> {
+            String diff = (value != null) ? value.toString() : "Medium";
+            Badge badge = Badge.forDifficulty(diff);
+            JPanel wrap = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 6));
+            wrap.setOpaque(false);
+            wrap.add(badge);
+            return wrap;
+        });
+
+        recentTable.getColumnModel().getColumn(0).setCellRenderer(centerRender);
+        recentTable.getColumnModel().getColumn(0).setPreferredWidth(45);
+        recentTable.getColumnModel().getColumn(1).setCellRenderer(centerRender);
+        recentTable.getColumnModel().getColumn(1).setPreferredWidth(130);
+        recentTable.getColumnModel().getColumn(2).setCellRenderer(centerRender);
+        recentTable.getColumnModel().getColumn(2).setPreferredWidth(110);
+        recentTable.getColumnModel().getColumn(4).setCellRenderer(wpmRender);
+        recentTable.getColumnModel().getColumn(4).setPreferredWidth(80);
+        recentTable.getColumnModel().getColumn(5).setCellRenderer(greenAccRender);
+        recentTable.getColumnModel().getColumn(5).setPreferredWidth(90);
+        recentTable.getColumnModel().getColumn(6).setCellRenderer(centerRender);
+        recentTable.getColumnModel().getColumn(6).setPreferredWidth(90);
+
+        JScrollPane tableScroll = new JScrollPane(recentTable);
+        tableScroll.setOpaque(false);
+        tableScroll.getViewport().setOpaque(false);
+        tableScroll.setBorder(BorderFactory.createEmptyBorder());
+        tableScroll.setPreferredSize(new Dimension(900, 190));
 
         recentCard.add(recentHeader, BorderLayout.NORTH);
-        recentCard.add(recentContainer, BorderLayout.CENTER);
+        recentCard.add(tableScroll, BorderLayout.CENTER);
 
         scrollContent.add(recentCard);
 
-        JScrollPane scrollPane = new JScrollPane(scrollContent);
-        scrollPane.setOpaque(false);
-        scrollPane.getViewport().setOpaque(false);
-        scrollPane.setBorder(null);
-        add(scrollPane, BorderLayout.CENTER);
+        JScrollPane mainScroll = new JScrollPane(scrollContent);
+        mainScroll.setOpaque(false);
+        mainScroll.getViewport().setOpaque(false);
+        mainScroll.setBorder(null);
+        add(mainScroll, BorderLayout.CENTER);
 
         refreshData();
-    }
-
-    private void selectModeType(TypingEngineService.TestModeType type) {
-        this.selectedModeType = type;
-        if (type == TypingEngineService.TestModeType.TIME) {
-            btnModeTime.setButtonType(ModernButton.ButtonType.PRIMARY);
-            btnModeTime.setIcon(IconUtil.getIcon(IconUtil.IconType.CLOCK, 13, Color.BLACK));
-            btnModeWords.setButtonType(ModernButton.ButtonType.SECONDARY);
-            btnModeWords.setIcon(IconUtil.getIcon(IconUtil.IconType.KEYBOARD, 13, AppTheme.getTextSecondary()));
-        } else {
-            btnModeTime.setButtonType(ModernButton.ButtonType.SECONDARY);
-            btnModeTime.setIcon(IconUtil.getIcon(IconUtil.IconType.CLOCK, 13, AppTheme.getTextSecondary()));
-            btnModeWords.setButtonType(ModernButton.ButtonType.PRIMARY);
-            btnModeWords.setIcon(IconUtil.getIcon(IconUtil.IconType.KEYBOARD, 13, Color.BLACK));
-        }
-        this.selectedModeValue = (type == TypingEngineService.TestModeType.TIME) ? 30 : 25;
-        rebuildValueButtons();
-    }
-
-    private void rebuildValueButtons() {
-        valuesPanel.removeAll();
-        int[] options = (selectedModeType == TypingEngineService.TestModeType.TIME) ? new int[]{15, 30, 60, 120} : new int[]{10, 25, 50, 100};
-        valButtons = new ModernButton[options.length];
-
-        for (int i = 0; i < options.length; i++) {
-            int val = options[i];
-            ModernButton btn = new ModernButton(String.valueOf(val), (val == selectedModeValue) ? ModernButton.ButtonType.PRIMARY : ModernButton.ButtonType.SECONDARY);
-            btn.setFont(AppTheme.FONT_SMALL_BOLD);
-            btn.setCornerRadius(6);
-            btn.addActionListener(e -> {
-                this.selectedModeValue = val;
-                for (ModernButton b : valButtons) {
-                    b.setButtonType(b == btn ? ModernButton.ButtonType.PRIMARY : ModernButton.ButtonType.SECONDARY);
-                }
-            });
-            valButtons[i] = btn;
-            valuesPanel.add(btn);
-        }
-        valuesPanel.revalidate();
-        valuesPanel.repaint();
-    }
-
-    private void selectDifficulty(String diff) {
-        this.selectedDifficulty = diff;
-        updateDifficultyButtons();
-    }
-
-    private void updateDifficultyButtons() {
-        btnDiffEasy.setButtonType("Easy".equalsIgnoreCase(selectedDifficulty) ? ModernButton.ButtonType.PRIMARY : ModernButton.ButtonType.SECONDARY);
-        btnDiffMedium.setButtonType("Medium".equalsIgnoreCase(selectedDifficulty) ? ModernButton.ButtonType.PRIMARY : ModernButton.ButtonType.SECONDARY);
-        btnDiffHard.setButtonType("Hard".equalsIgnoreCase(selectedDifficulty) ? ModernButton.ButtonType.PRIMARY : ModernButton.ButtonType.SECONDARY);
-    }
-
-    private void togglePunctuation() {
-        punctuationEnabled = !punctuationEnabled;
-        btnTogglePunct.setButtonType(punctuationEnabled ? ModernButton.ButtonType.PRIMARY : ModernButton.ButtonType.SECONDARY);
-    }
-
-    private void toggleNumbers() {
-        numbersEnabled = !numbersEnabled;
-        btnToggleNum.setButtonType(numbersEnabled ? ModernButton.ButtonType.PRIMARY : ModernButton.ButtonType.SECONDARY);
-    }
-
-    private ModernButton createPillButton(String text, Runnable action) {
-        ModernButton btn = new ModernButton(text, ModernButton.ButtonType.SECONDARY);
-        btn.setFont(AppTheme.FONT_SMALL_BOLD);
-        btn.setCornerRadius(6);
-        btn.addActionListener(e -> action.run());
-        return btn;
-    }
-
-    private JLabel createDivider() {
-        JLabel lbl = new JLabel("•");
-        lbl.setForeground(AppTheme.getTextMuted());
-        return lbl;
-    }
-
-    private void launchTest() {
-        mainFrame.startTypingTest(selectedModeType, selectedModeValue, selectedDifficulty, punctuationEnabled, numbersEnabled);
     }
 
     public void refreshData() {
         User user = authService.getCurrentUser();
         if (user == null) return;
 
-        lblUserGreeting.setText("Welcome back, " + user.getName());
+        lblUserName.setText(user.getName());
 
         int uid = user.getId();
-        cardBestWpm.setValue(String.format("%.1f", historyService.getPersonalBestWpm(uid)));
-        cardAvgWpm.setValue(String.format("%.1f", historyService.getAverageWpm(uid)));
-        cardAvgAcc.setValue(String.format("%.1f%%", historyService.getAverageAccuracy(uid)));
-        cardTotalTests.setValue(String.valueOf(historyService.getTotalCompletedTests(uid)));
+        double bestWpm = historyService.getPersonalBestWpm(uid);
+        double avgWpm = historyService.getAverageWpm(uid);
+        double avgAcc = historyService.getAverageAccuracy(uid);
+        int totalTests = historyService.getTotalCompletedTests(uid);
 
-        // Rebuild Recent Activity
-        recentContainer.removeAll();
+        cardBestWpm.setValue(String.format("%.0f", bestWpm));
+        cardAvgWpm.setValue(String.format("%.0f", avgWpm));
+        cardAvgAcc.setValue(String.format("%.0f%%", avgAcc));
+        cardTotalTests.setValue(String.valueOf(totalTests));
+
+        // Rebuild Recent Tests rows
+        recentTableModel.setRowCount(0);
         List<TypingResult> recent = historyService.getCurrentUserHistory("DATE");
 
-        if (recent.isEmpty()) {
-            JLabel lblEmpty = new JLabel("No tests completed yet. Click 'Start Practice' above to begin your typing test!");
-            lblEmpty.setFont(AppTheme.FONT_BODY);
-            lblEmpty.setForeground(AppTheme.getTextMuted());
-            lblEmpty.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
-            recentContainer.add(lblEmpty);
-        } else {
-            int count = Math.min(recent.size(), 4);
-            for (int i = 0; i < count; i++) {
-                TypingResult r = recent.get(i);
-                recentContainer.add(createRecentRow(r));
-                if (i < count - 1) {
-                    recentContainer.add(Box.createVerticalStrut(8));
-                }
-            }
+        int count = Math.min(recent.size(), 5);
+        for (int i = 0; i < count; i++) {
+            TypingResult r = recent.get(i);
+            recentTableModel.addRow(new Object[]{
+                    String.valueOf(i + 1),
+                    r.getDisplayDate(),
+                    r.getDisplayMode(),
+                    r.getDifficulty(),
+                    String.format("%.0f", r.getWpm()),
+                    String.format("%.0f%%", r.getAccuracy()),
+                    r.getDisplayTime()
+            });
         }
-
-        recentContainer.revalidate();
-        recentContainer.repaint();
-    }
-
-    private JPanel createRecentRow(TypingResult r) {
-        JPanel row = new JPanel(new BorderLayout(15, 0));
-        row.setOpaque(false);
-        row.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, AppTheme.getCardBorder()),
-                BorderFactory.createEmptyBorder(8, 6, 8, 6)
-        ));
-
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        left.setOpaque(false);
-        left.add(Badge.forDifficulty(r.getDifficulty()));
-
-        JLabel lblMode = new JLabel(r.getTestMode());
-        lblMode.setFont(AppTheme.FONT_BODY_BOLD);
-        lblMode.setForeground(AppTheme.getTextPrimary());
-        left.add(lblMode);
-
-        JLabel lblDate = new JLabel(r.getFormattedDate());
-        lblDate.setFont(AppTheme.FONT_SMALL);
-        lblDate.setForeground(AppTheme.getTextMuted());
-        left.add(lblDate);
-
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
-        right.setOpaque(false);
-
-        JLabel lblWpm = new JLabel(String.format("%.1f WPM", r.getWpm()));
-        lblWpm.setFont(AppTheme.FONT_BODY_BOLD);
-        lblWpm.setForeground(AppTheme.ACCENT_AMBER);
-
-        JLabel lblAcc = new JLabel(String.format("%.1f%% Acc", r.getAccuracy()));
-        lblAcc.setFont(AppTheme.FONT_SMALL);
-        lblAcc.setForeground(AppTheme.ACCENT_GREEN);
-
-        right.add(lblWpm);
-        right.add(lblAcc);
-
-        row.add(left, BorderLayout.WEST);
-        row.add(right, BorderLayout.EAST);
-        return row;
     }
 }

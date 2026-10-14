@@ -90,6 +90,10 @@ public class TypingResult {
         return durationSeconds;
     }
 
+    public int getTimeTaken() {
+        return durationSeconds;
+    }
+
     public void setDurationSeconds(int durationSeconds) {
         this.durationSeconds = durationSeconds;
     }
@@ -189,6 +193,32 @@ public class TypingResult {
     public String getFormattedDate() {
         if (testDate == null) return "N/A";
         return new SimpleDateFormat("yyyy-MM-dd HH:mm").format(testDate);
+    }
+
+    public String getDisplayDate() {
+        if (testDate == null) return "N/A";
+        return new SimpleDateFormat("MMM d, yyyy").format(testDate);
+    }
+
+    public String getDisplayTime() {
+        if (durationSeconds >= 60) {
+            int mins = durationSeconds / 60;
+            return mins + (mins == 1 ? " min" : " mins");
+        } else {
+            return durationSeconds + " sec";
+        }
+    }
+
+    public String getDisplayMode() {
+        if (testMode == null) return "Time (60s)";
+        if (testMode.toUpperCase().startsWith("TIME-")) {
+            String val = testMode.substring(5);
+            return "Time (" + val + "s)";
+        } else if (testMode.toUpperCase().startsWith("WORDS-")) {
+            String val = testMode.substring(6);
+            return "Words (" + val + ")";
+        }
+        return testMode;
     }
 
     @Override

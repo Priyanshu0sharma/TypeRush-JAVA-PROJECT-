@@ -134,13 +134,13 @@ public class ModernButton extends JButton {
             case SECONDARY:
             default:
                 if (isActiveIndicator) {
-                    bg = AppTheme.isDarkMode() ? new Color(44, 46, 56) : new Color(226, 232, 240);
+                    bg = AppTheme.isDarkMode() ? new Color(24, 31, 48) : new Color(226, 232, 240);
                     fg = AppTheme.ACCENT_AMBER;
-                    border = AppTheme.isDarkMode() ? new Color(60, 63, 75) : new Color(203, 213, 225);
+                    border = AppTheme.ACCENT_AMBER;
                 } else {
-                    bg = isPressed ? AppTheme.getCardBorder() : (isHovered ? (AppTheme.isDarkMode() ? new Color(44, 46, 56) : new Color(226, 232, 240)) : (AppTheme.isDarkMode() ? new Color(34, 36, 43) : new Color(241, 245, 249)));
+                    bg = isPressed ? AppTheme.getCardBorder() : (isHovered ? (AppTheme.isDarkMode() ? new Color(28, 36, 56) : new Color(226, 232, 240)) : (AppTheme.isDarkMode() ? new Color(19, 24, 38) : new Color(241, 245, 249)));
                     fg = isHovered ? AppTheme.getTextPrimary() : AppTheme.getTextSecondary();
-                    border = isHovered ? (AppTheme.isDarkMode() ? new Color(65, 68, 80) : new Color(203, 213, 225)) : AppTheme.getCardBorder();
+                    border = isHovered ? (AppTheme.isDarkMode() ? new Color(45, 57, 88) : new Color(203, 213, 225)) : AppTheme.getCardBorder();
                 }
                 break;
         }
@@ -152,14 +152,8 @@ public class ModernButton extends JButton {
         // Border
         if (border != null) {
             g2.setColor(border);
-            g2.setStroke(new BasicStroke(1f));
+            g2.setStroke(new BasicStroke(isActiveIndicator ? 1.4f : 1f));
             g2.drawRoundRect(0, 0, width - 1, height - 1, cornerRadius, cornerRadius);
-        }
-
-        // Active left pill line indicator if selected in navigation
-        if (isActiveIndicator) {
-            g2.setColor(AppTheme.ACCENT_AMBER);
-            g2.fillRoundRect(0, 6, 3, height - 12, 2, 2);
         }
 
         // Icon & Text layout

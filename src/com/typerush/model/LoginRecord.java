@@ -121,4 +121,12 @@ public class LoginRecord {
         if (loginTime == null) return "N/A";
         return DATE_FORMATTER.format(loginTime);
     }
+
+    public String getFormattedTimestamp() {
+        return getFormattedTime();
+    }
+
+    public boolean isSuccess() {
+        return "SUCCESS".equalsIgnoreCase(status);
+    }
 }

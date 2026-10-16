@@ -19,7 +19,7 @@ This project is engineered as a collaborative 5-member B.Tech College PBL projec
 |---|---|---|---|
 | **Member 1 (Lead)** | **Priyanshu Sharma** | UI/UX & System Integration | `Main.java`, `MainFrame.java`, `HomePanel.java`, `AppTheme.java`, `ModernButton.java`, `ModernCard.java`, `StatCard.java`, `Badge.java`, `AppConfig.java`, `ProfilePanel.java` |
 | **Member 2** | **Kumawat Yogesh Dinesh** | Typing Engine & Simulation | `TypingEngineService.java`, `MonkeytypeCanvas.java`, `TypingTestPanel.java`, `TextGenerator.java`, `SoundManager.java`, `VirtualKeyboard.java` |
-| **Member 3** | **Jatin Yadav** | Mathematical Calculations & Telemetry | `CalculationService.java`, `PerformanceChart.java`, `ResultPanel.java`, `ReportsPanel.java`, `ReportService.java`, `CalculationTests.java` |
+| **Member 3** | [**Jatin Yadav**](https://github.com/jatin-yadav-18) | Mathematical Calculations & Telemetry | `CalculationService.java`, `PerformanceChart.java`, `ResultPanel.java`, `ReportsPanel.java`, `ReportService.java`, `CalculationTests.java` |
 | **Member 4** | **Mukesh** | Database Architecture & History CRUD | `database/schema.sql`, `DatabaseConnection.java`, `TypingResultDAO.java`, `HistoryService.java`, `HistoryPanel.java`, `CsvExporter.java` |
 | **Member 5** | **Prashant Soni** | Security, Roles & Administration | `User.java`, `UserSettings.java`, `UserDAO.java`, `UserSettingsDAO.java`, `AuthService.java`, `ValidationUtil.java`, `AuthPanel.java`, `SettingsPanel.java`, `AdminPanel.java` |
 
@@ -31,7 +31,7 @@ TypeRush is packaged to run exactly like a native Windows application:
 
 ### 1. Direct Launch via Native Executable
 - **`TypeRush.exe`** – Official native Windows executable with embedded high-resolution TypeRush logo icon. Launches completely silently without terminal popups.
-- **Desktop Shortcut:** Instant 1-click shortcut with app logo installed at `C:\Users\Priyanshuu\Desktop\TypeRush.lnk`.
+- **Desktop Shortcut:** Instant 1-click shortcut with app logo installed on user Desktop via `Install-Desktop-Shortcut.bat`.
 
 ### 2. Ready-to-Run Portable Release Package
 - Located at: **`dist/TypeRush-v1.0-Windows.zip`**

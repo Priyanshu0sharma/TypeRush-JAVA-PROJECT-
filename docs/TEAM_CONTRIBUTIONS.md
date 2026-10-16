@@ -33,8 +33,10 @@
 
 ---
 
-### Member 3: Jatin Yadav
+### Member 3: Jatin Yadav ([@jatin-yadav-18](https://github.com/jatin-yadav-18))
 - **Role:** Analytics & Mathematical Calculations Developer
+- **GitHub:** [https://github.com/jatin-yadav-18](https://github.com/jatin-yadav-18)
+- **Email:** jatinyadav2006mj@gmail.com
 - **Assigned Module:** Typing Calculations, Result Screen, Performance Charts & Reports
 - **Key Files Owned & Authored:**
   - `src/com/typerush/service/CalculationService.java`: Mathematically rigorous typing speed formulas (Corrected WPM, Raw WPM, Accuracy %, CPM).

@@ -10,7 +10,6 @@
 [![Build Package](https://img.shields.io/badge/Release-Portable%20Zip%20%7C%20EXE%20Launcher-success?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Priyanshu0sharma/TypeRush-JAVA-PROJECT-)
 
 ---
-
 ## 👥 Team ZeroX – 5-Member Module Ownership
 
 This project is engineered as a collaborative 5-member B.Tech College PBL project with strictly defined module boundaries and genuine student code ownership:
@@ -274,3 +273,31 @@ Complete documentation is located in the `docs/` folder:
 
 ---
 *Developed with ❤️ by the TypeRush PBL Team — 2026.*
+---
+
+## 👨‍💻 Yogesh Kumawat — My Contribution
+
+**Team Member:** Yogesh Kumawat Dinesh
+**GitHub:** [@yogeshk570](https://github.com/yogeshk570)
+**Role:** Typing Engine & Simulation
+
+### Key Responsibilities
+
+* Developed and worked on the core typing engine and typing simulation.
+* Contributed to the typing test workflow and text generation.
+* Worked on keyboard interaction and typing experience.
+* Contributed to project documentation and GitHub repository maintenance.
+
+### Modules & Classes
+
+* `TypingEngineService.java`
+* `MonkeytypeCanvas.java`
+* `TypingTestPanel.java`
+* `TextGenerator.java`
+* `SoundManager.java`
+* `VirtualKeyboard.java`
+
+### Contribution Goal
+
+To improve the typing test experience through reliable typing simulation, responsive keyboard interaction, and a smooth user experience.
+
